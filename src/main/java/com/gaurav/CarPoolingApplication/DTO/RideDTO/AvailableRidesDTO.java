@@ -7,7 +7,9 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-@NoArgsConstructor @Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
+@Getter @Setter
+@Builder
 public class AvailableRidesDTO {
     private String rideCode;
     private String driverName;
@@ -18,6 +20,7 @@ public class AvailableRidesDTO {
     private Integer totalSeats;
     private Integer totalAvailableSeats;
     private BigDecimal pricePerKm;
+    private BigDecimal estimatedFare;
     private String vehicleModel;
     private String vehicleCategory;
     private String vehicleClass;
