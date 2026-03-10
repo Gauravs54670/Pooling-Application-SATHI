@@ -26,14 +26,4 @@ public interface DriverService {
             String email,
             String rideRequestDecision,
             PassengerBookingRequest passengerBookingRequest);
-    /*
-    // 9️⃣ Accept / Reject Booking
-    String updateBookingStatus(
-            String credential,
-            Long bookingId,
-            BookingStatus status);
-
-    // 🔟 View Earnings Summary
-    DriverEarningsResponse getEarningsSummary(String credential);
-    */
 }
