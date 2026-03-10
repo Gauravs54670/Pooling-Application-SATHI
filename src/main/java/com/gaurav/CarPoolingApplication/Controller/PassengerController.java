@@ -4,6 +4,7 @@ import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideSearchRequestDTO;
 import com.gaurav.CarPoolingApplication.Service.PassengerService.PassengerService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +22,11 @@ public class PassengerController {
     }
 //    get all available rides
     @GetMapping("/get-availableRides")
-    public ResponseEntity<?> getAvailableRides(Authentication authentication) {
+    public ResponseEntity<?> getAvailableRides(
+            Authentication authentication,
+            @RequestBody RideSearchRequestDTO rideSearchRequestDTO) {
         String email = authentication.getName();
-        List<AvailableRidesDTO> ridesDTOS = this.passengerService.getAvailableRides(email);
+        List<AvailableRidesDTO> ridesDTOS = this.passengerService.getAvailableRides(email, rideSearchRequestDTO);
         return new ResponseEntity<>(Map.of(
                 "message", "Available Rides",
                 "response", ridesDTOS

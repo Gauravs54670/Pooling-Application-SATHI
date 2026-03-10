@@ -4,6 +4,7 @@ import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideSearchRequestDTO;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.PassengerRideRequestEntity;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideEntity;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,12 +48,27 @@ public class PassengerServiceImplementation implements PassengerService{
     }
 //    get available rides when passenger opens ride
     @Override
-    public List<AvailableRidesDTO> getAvailableRides(String email) {
-        UserEntity user = this.userEntityRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        validatePassengerAccount(user);
-        List<AvailableRidesDTO> rides = this.rideEntityRepository.getAllAvailableRides();
-        return this.rideEntityRepository.getAllAvailableRides();
+    public List<AvailableRidesDTO> getAvailableRides(String email, RideSearchRequestDTO rideSearchRequestDTO) {
+        UserEntity passenger = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validatePassengerAccount(passenger);
+        List<RideEntity> totalRides = this.rideEntityRepository.findAvailableRides();
+        List<AvailableRidesDTO> allCompatibleRides = new ArrayList<>();
+        for(RideEntity r : totalRides) {
+            double sourceDistance = calculateDistance(
+                    rideSearchRequestDTO.getPassengerSourceLat(),
+                    rideSearchRequestDTO.getPassengerSourceLong(),
+                    r.getSourceLat(),
+                    r.getSourceLong());
+            double destinationDistance = calculateDistance(
+                    rideSearchRequestDTO.getPassengerDestinationLat(),
+                    rideSearchRequestDTO.getPassengerDestinationLong(),
+                    r.getDestinationLat(),
+                    r.getDestinationLong());
+            if(sourceDistance <= 1.5 && destinationDistance <= 1.5)
+                allCompatibleRides.add(mapToAvailableRideDTO(r));
+        }
+        return allCompatibleRides;
     }
 //    request a ride from passenger end
     @Override @Transactional
@@ -135,5 +152,41 @@ public class PassengerServiceImplementation implements PassengerService{
             throw new AccessDeniedException("Account Suspended.");
         if(user.getUserAccountStatus().equals(UserAccountStatus.DEACTIVATED))
             throw new AccessDeniedException("Account DEACTIVATED.");
+    }
+    //    calculate distance between source and destination
+    private double calculateDistance(
+            Double sourceLat,
+            Double sourceLong,
+            Double destinationLat,
+            Double destinationLong) {
+        final int EARTH_RADIUS = 6371; // km
+        double latDistance = Math.toRadians(destinationLat - sourceLat);
+        double lonDistance = Math.toRadians(destinationLong - sourceLong);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(sourceLat))
+                * Math.cos(Math.toRadians(destinationLat))
+                * Math.sin(lonDistance / 2)
+                * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return Math.round(EARTH_RADIUS * c * 100.0) / 100.0;
+    }
+//    map ride entity to available ride dto
+    private AvailableRidesDTO mapToAvailableRideDTO(RideEntity ride) {
+        return AvailableRidesDTO.builder()
+                .rideCode(ride.getRideCode())
+                .driverName(ride.getDriverProfileEntity().getUser().getUserFullName())
+                .driverRating(ride.getDriverProfileEntity().getAverageRatingOfDriver())
+                .driverSourceLocation(ride.getSourceAddress())
+                .driverDestinationLocation(ride.getDestinationAddress())
+                .rideDepartureTime(ride.getDepartureTime())
+                .totalSeats(ride.getTotalSeats())
+                .totalAvailableSeats(ride.getAvailableSeats())
+                .pricePerKm(ride.getPricePerKm())
+                .estimatedFare(ride.getEstimatedTotalFare())
+                .vehicleModel(ride.getDriverProfileEntity().getVehicleModel())
+                .vehicleCategory(ride.getVehicleCategory().name())
+                .vehicleClass(ride.getVehicleClass().name())
+                .rideStatus(ride.getRideStatus().name())
+                .build();
     }
 }

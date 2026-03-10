@@ -63,4 +63,13 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
     PassengerRideRequestDecisionResponse getDecisionResponse(
             @Param("requestId") Long requestId,
             @Param("rideCode") String rideCode);
+    @Query("""
+           SELECT new com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests(
+                r.rideCode,
+                r.rideRequestStatus
+           )
+           FROM PassengerRideRequestEntity r
+           WHERE r.rideCode = :rideCode,
+           AND departureTime
+            """)
 }

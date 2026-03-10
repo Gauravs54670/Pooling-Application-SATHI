@@ -62,4 +62,11 @@ public interface RideEntityRepository extends JpaRepository<RideEntity, Long> {
             """)
     List<AvailableRidesDTO> getAllAvailableRides();
     Optional<RideEntity> findByRideCode(String rideCode);
+    @Query("""
+            SELECT r FROM RideEntity r
+            WHERE r.rideStatus = ACTIVE
+            AND r.availableSeats >= 0
+            AND r.departureTime > CURRENT_TIMESTAMP
+            """)
+    List<RideEntity> findAvailableRides();
 }
