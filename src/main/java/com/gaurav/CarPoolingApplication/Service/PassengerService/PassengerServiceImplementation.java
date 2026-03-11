@@ -1,5 +1,6 @@
 package com.gaurav.CarPoolingApplication.Service.PassengerService;
 
+import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestResponse;
@@ -22,6 +23,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -143,6 +145,15 @@ public class PassengerServiceImplementation implements PassengerService{
         if(!passengerRideRequest.getPassenger().getUserId().equals(passenger.getUserId()))
             throw new AccessDeniedException("You are not requested this ride.");
         return this.passengerRideRequestRepository.getDecisionResponse(requestId,rideCode);
+    }
+
+    @Override
+    public List<MyRideRequests> getMyRideRequestStatus(String email, LocalDate date) {
+        UserEntity passenger = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validatePassengerAccount(passenger);
+        return this.passengerRideRequestRepository
+                .getMyRidesRequestStatus(passenger.getUserId(), date);
     }
 
     //    helper methods

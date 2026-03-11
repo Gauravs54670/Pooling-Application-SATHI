@@ -1,5 +1,6 @@
 package com.gaurav.CarPoolingApplication.Controller;
 
+import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestResponse;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -57,6 +59,19 @@ public class PassengerController {
         return new ResponseEntity<>(Map.of(
                 "message", "Ride request response",
                 "response", response
+        ),HttpStatus.OK);
+    }
+//    get my requested ride status
+    @GetMapping("/my-rideRequests")
+    public ResponseEntity<?> myRequestedRides(
+            Authentication authentication,
+            @RequestParam(required = false)LocalDate date) {
+        String email = authentication.getName();
+        List<MyRideRequests> myRideRequests =
+                this.passengerService.getMyRideRequestStatus(email, date);
+        return new ResponseEntity<>(Map.of(
+                "message", "Requests Fetched",
+                "response", myRideRequests
         ),HttpStatus.OK);
     }
 }

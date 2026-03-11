@@ -1,6 +1,7 @@
 package com.gaurav.CarPoolingApplication.Repository;
 
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.BookingResponse;
+import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.PassengerRideRequestEntity;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,13 +65,18 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
     PassengerRideRequestDecisionResponse getDecisionResponse(
             @Param("requestId") Long requestId,
             @Param("rideCode") String rideCode);
-    @Query("""
+        @Query("""
            SELECT new com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests(
                 r.rideCode,
                 r.rideRequestStatus
            )
            FROM PassengerRideRequestEntity r
-           WHERE r.rideCode = :rideCode,
-           AND departureTime
-            """)
+           WHERE r.passenger.userId = :userId
+           AND DATE(r.rideRequestedAt) = :date
+           ORDER BY r.rideRequestedAt DESC
+           """)
+        List<MyRideRequests> getMyRidesRequestStatus(
+                @Param("userId") Long userId,
+                @Param("date") LocalDate date
+        );
 }
