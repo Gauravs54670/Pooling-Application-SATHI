@@ -38,6 +38,7 @@ public class DriverProfileEntity {
     private DriverAvailabilityStatus driverAvailabilityStatus;
     private Integer totalCompletedRides;
     private Integer totalCancelledRides;
+    private Integer totalDriverRating;
     private Double averageRatingOfDriver;
     private Integer totalReviewCount;
     private LocalDateTime accountCreatedAt;

@@ -1,5 +1,6 @@
 package com.gaurav.CarPoolingApplication.Controller;
 
+import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRatingClass;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
@@ -72,6 +73,21 @@ public class PassengerController {
         return new ResponseEntity<>(Map.of(
                 "message", "Requests Fetched",
                 "response", myRideRequests
+        ),HttpStatus.OK);
+    }
+//    rate driver
+    @PostMapping("/rate")
+    public ResponseEntity<?> rateDriver(
+            Authentication authentication,
+            @RequestParam("rideCode") String rideCode,
+            @RequestParam("rating") Integer rating,
+            @RequestParam("comment") String comment) {
+        String email = authentication.getName();
+        DriverRatingClass driverRatingClass = this.passengerService
+                .rateDriver(email, rating, comment, rideCode);
+        return new ResponseEntity<>(Map.of(
+                "message", "Review done successfully",
+                "response", driverRatingClass
         ),HttpStatus.OK);
     }
 }

@@ -12,5 +12,6 @@ public class DriverRideRequestDecisionResponse {
     private String passengerPhoneNumber;
     private Integer approvedSeats;
     private String requestStatus;
+    private String rideOTP;
     private LocalDateTime decisionTime;
 }

@@ -1,11 +1,14 @@
 package com.gaurav.CarPoolingApplication.Service.PassengerService;
 
+import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRatingClass;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideSearchRequestDTO;
+import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverProfileEntity;
+import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverRatingEntity;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.PassengerRideRequestEntity;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideEntity;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus;
@@ -14,10 +17,7 @@ import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserAccountStat
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
 import com.gaurav.CarPoolingApplication.Exception.ResourceNotFoundException;
 import com.gaurav.CarPoolingApplication.Exception.UserNotFoundException;
-import com.gaurav.CarPoolingApplication.Repository.DriverEntityRepository;
-import com.gaurav.CarPoolingApplication.Repository.PassengerRideRequestRepository;
-import com.gaurav.CarPoolingApplication.Repository.RideEntityRepository;
-import com.gaurav.CarPoolingApplication.Repository.UserEntityRepository;
+import com.gaurav.CarPoolingApplication.Repository.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -34,11 +34,13 @@ import java.util.Optional;
 @Slf4j
 public class PassengerServiceImplementation implements PassengerService{
 
+    private final DriverRatingEntityRepository driverRatingEntityRepository;
     private final PassengerRideRequestRepository passengerRideRequestRepository;
     private final UserEntityRepository userEntityRepository;
     private final DriverEntityRepository driverEntityRepository;
     private final RideEntityRepository rideEntityRepository;
     public PassengerServiceImplementation(
+            DriverRatingEntityRepository driverRatingEntityRepository,
             PassengerRideRequestRepository passengerRideRequestRepository,
             RideEntityRepository rideEntityRepository,
             UserEntityRepository userEntityRepository,
@@ -47,6 +49,7 @@ public class PassengerServiceImplementation implements PassengerService{
         this.driverEntityRepository = driverEntityRepository;
         this.userEntityRepository = userEntityRepository;
         this.rideEntityRepository = rideEntityRepository;
+        this.driverRatingEntityRepository = driverRatingEntityRepository;
     }
 //    get available rides when passenger opens ride
     @Override
@@ -155,7 +158,67 @@ public class PassengerServiceImplementation implements PassengerService{
         return this.passengerRideRequestRepository
                 .getMyRidesRequestStatus(passenger.getUserId(), date);
     }
-
+//    needed to completed
+//    rate driver
+    @Override @Transactional
+    public DriverRatingClass rateDriver(
+            String email, Integer rating, String comment, String rideCode) {
+        if (rating < 1 || rating > 5)
+            throw new IllegalArgumentException("Rating must be between 1 and 5");
+        UserEntity passenger = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validatePassengerAccount(passenger);
+        RideEntity ride = this.rideEntityRepository.findByRideCode(rideCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found."));
+        if(ride.getDriverProfileEntity().getUser().getUserId().equals(passenger.getUserId()))
+            throw new RuntimeException("You can't rate yourself.");
+        DriverProfileEntity driverProfile = ride.getDriverProfileEntity();
+        if(driverProfile.getUser().getUserAccountStatus().equals(UserAccountStatus.SUSPENDED))
+            throw new AccessDeniedException("Driver's account is SUSPENDED.");
+        if(driverProfile.getUser().getUserAccountStatus().equals(UserAccountStatus.DEACTIVATED))
+            throw new AccessDeniedException("Driver's account is DEACTIVATED.");
+        boolean isAlreadyRated = this.driverRatingEntityRepository.existsByRideAndPassenger(ride, passenger);
+        if(isAlreadyRated)
+            throw new AccessDeniedException("You already reviewed this ride.");
+        PassengerRideRequestEntity rideRequestEntity = this.passengerRideRequestRepository
+                .findByPassengerAndRideCode(passenger,rideCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found."));
+        if(!rideRequestEntity.getRide().equals(ride))
+            throw new RuntimeException("Invalid ride request.");
+        if(ride.getRideStatus() != (RideStatus.COMPLETED))
+            throw new AccessDeniedException("You can't review driver before ride is complete.");
+        DriverRatingEntity driverRating = DriverRatingEntity.builder()
+                .driverProfile(driverProfile)
+                .passenger(passenger)
+                .ride(ride)
+                .rating(rating)
+                .comment(comment)
+                .build();
+        if (driverProfile.getTotalReviewCount() == null || driverProfile.getTotalReviewCount() == 0) {
+            driverProfile.setTotalDriverRating(rating);
+            driverProfile.setTotalReviewCount(1);
+            driverProfile.setAverageRatingOfDriver((double) rating);
+        }
+        else {
+            int oldCount = driverProfile.getTotalReviewCount();
+            double oldAvg = driverProfile.getAverageRatingOfDriver();
+            int newCount = oldCount + 1;
+            double newAvg = ((oldAvg * oldCount) + rating) / newCount;
+            driverProfile.setTotalReviewCount(newCount);
+            driverProfile.setAverageRatingOfDriver(newAvg);
+            driverProfile.setTotalDriverRating(
+                    driverProfile.getTotalDriverRating() + rating
+            );
+        }
+        driverRating.setReviewedAt(LocalDateTime.now());
+        this.driverRatingEntityRepository.save(driverRating);
+        this.driverEntityRepository.save(driverProfile);
+        return DriverRatingClass.builder()
+                .rating(rating)
+                .comment(comment)
+                .rideCode(rideCode)
+                .build();
+    }
     //    helper methods
 //    validate the passenger's account
     private void validatePassengerAccount(UserEntity user) {

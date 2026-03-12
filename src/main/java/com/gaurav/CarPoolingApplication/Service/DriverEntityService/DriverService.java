@@ -26,4 +26,7 @@ public interface DriverService {
             String email,
             String rideRequestDecision,
             PassengerBookingRequest passengerBookingRequest);
+    String rideStarted(String email, String rideCode, String rideOTP);
+    String rideCompleted(String email, String rideCode);
+
 }

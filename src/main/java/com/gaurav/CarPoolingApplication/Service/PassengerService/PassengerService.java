@@ -1,5 +1,6 @@
 package com.gaurav.CarPoolingApplication.Service.PassengerService;
 
+import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRatingClass;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
@@ -22,4 +23,7 @@ public interface PassengerService {
             Long requestId,
             String rideCode);
     List<MyRideRequests> getMyRideRequestStatus(String email, LocalDate date);
+    DriverRatingClass rateDriver(
+            String email, Integer rating,
+            String comment, String rideCode);
 }

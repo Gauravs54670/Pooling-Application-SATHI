@@ -126,5 +126,27 @@ public class DriverController {
                 "response", requestDecisionResponse
         ),HttpStatus.OK);
     }
+//    left to tested
+    @PostMapping("/start-ride")
+    public ResponseEntity<?> startRide(
+            Authentication authentication,
+            @RequestParam("rideCode") String rideCode,
+            @RequestParam("OTP") String rideOTP) {
+        String email = authentication.getName();
+        String message = this.driverService.rideStarted(email,rideCode,rideOTP);
+        return new ResponseEntity<>(Map.of(
+                "message", message
+        ),HttpStatus.OK);
+    }
+//    left to tested
+    @PostMapping("/ride-completed")
+    public ResponseEntity<?> rideCompleted(
+            Authentication authentication, String rideCode) {
+        String email = authentication.getName();
+        String message = this.driverService.rideCompleted(email, rideCode);
+        return new ResponseEntity<>(Map.of(
+                "message", message
+        ),HttpStatus.OK);
+    }
 }
 

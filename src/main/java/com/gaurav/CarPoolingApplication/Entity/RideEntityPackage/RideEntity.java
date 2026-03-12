@@ -59,7 +59,9 @@ public class RideEntity {
     private LocalDateTime arrivalTime;
     private LocalDateTime rideCreatedAt;
     private LocalDateTime rideUpdatedAt;
+    private LocalDateTime rideCompletedAt;
     private boolean isRideDeleted = false;
     @Column(nullable = false,unique = true)
     private String rideCode;
+    private String rideOTP;
 }

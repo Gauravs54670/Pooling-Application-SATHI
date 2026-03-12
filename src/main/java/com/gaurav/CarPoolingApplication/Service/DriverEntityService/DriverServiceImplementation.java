@@ -35,6 +35,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service
@@ -359,14 +360,13 @@ public class DriverServiceImplementation implements DriverService{
 //        verify that request belongs to the ride
         if(!passengerRideRequest.getRide().getRideId().equals(ride.getRideId()))
             throw new AccessDeniedException("Invalid ride request.");
-        if(ride.getRideStatus().equals(RideStatus.CANCELLED)
-                || !ride.getRideStatus().equals(RideStatus.ACTIVE)
-                || ride.isRideDeleted())
-            throw new RuntimeException("Ride is cancelled.");
+        if (ride.getRideStatus() != RideStatus.ACTIVE || ride.isRideDeleted())
+            throw new RuntimeException("Ride not active.");
         if(ride.getDepartureTime().isBefore(LocalDateTime.now()))
             throw new RuntimeException("Ride is expired.");
-        if(!passengerRideRequest.getRideRequestStatus().equals(RideRequestStatus.PENDING))
+        if(passengerRideRequest.getRideRequestStatus() != (RideRequestStatus.PENDING))
             throw new AccessDeniedException("Request has already been decided.");
+        String rideOtp = "";
         switch (rideRequestStatus) {
             case ACCEPTED -> {
                 if (ride.getAvailableSeats() < passengerRideRequest.getRequestedSeats())
@@ -375,6 +375,8 @@ public class DriverServiceImplementation implements DriverService{
                 if (remainingSeats <= 0)
                     ride.setRideStatus(RideStatus.FULL);
                 passengerRideRequest.setRideRequestStatus(RideRequestStatus.ACCEPTED);
+                rideOtp = generateOTP();
+                ride.setRideOTP(rideOtp);
                 ride.setAvailableSeats(Math.max(remainingSeats, 0));
                 this.rideEntityRepository.save(ride);
             }
@@ -399,10 +401,63 @@ public class DriverServiceImplementation implements DriverService{
                                 passengerRideRequest.getPassenger().getPhoneNumber() : null)
                 .approvedSeats(passengerRideRequest.getRequestedSeats())
                 .requestStatus(rideRequestStatus.toString())
+                .rideOTP(rideOtp.isEmpty() ? null : rideOtp)
                 .decisionTime(decisionTime)
                 .build();
     }
+//    start ride by driver
+    @Override
+    public String rideStarted(String email, String rideCode, String rideOTP) {
+        UserEntity driver = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        validateUserAccount(driver);
+        DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
+        RideEntity ride = this.rideEntityRepository.findByRideCode(rideCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not exist."));
+        if(!ride.getRideStatus().equals(RideStatus.ACTIVE))
+            throw new RuntimeException("Ride cannot be started.");
+        if(!ride.getDriverProfileEntity().getDriverId().equals(driverProfile.getDriverId()))
+            throw new AccessDeniedException("Invalid ride request. You did not own this ride.");
+        if(ride.getDepartureTime().isAfter(LocalDateTime.now()))
+            throw new RuntimeException("Ride departure time has not arrived yet.");
+        if(ride.getRideStatus().equals(RideStatus.STARTED))
+            throw new RuntimeException("Ride already started.");
+        if(!ride.getRideOTP().equals(rideOTP))
+            throw new AccessDeniedException("Invalid OTP");
+        ride.setRideStatus(RideStatus.STARTED);
+        ride.setRideUpdatedAt(LocalDateTime.now());
+        this.rideEntityRepository.save(ride);
+        return "Ride has started.";
+    }
+//    ride completed
+    @Override
+    public String rideCompleted(String email, String rideCode) {
+        UserEntity driver = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateUserAccount(driver);
+        DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
+        RideEntity ride = this.rideEntityRepository.findByRideCode(rideCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not exist."));
+        if(!ride.getDriverProfileEntity().getDriverId().equals(driverProfile.getDriverId()))
+            throw new AccessDeniedException("You do not own this ride.");
+        if(!ride.getRideStatus().equals(RideStatus.STARTED))
+            throw new InvalidRideStateException("Ride must be STARTED before completion.");
+        //payment process lie here {}
+        ride.setRideStatus(RideStatus.COMPLETED);
+        ride.setRideCompletedAt(LocalDateTime.now());
+        driverProfile.setTotalCompletedRides(driverProfile.getTotalCompletedRides() + 1);
+        this.rideEntityRepository.save(ride);
+        return "Ride completed.";
+    }
+
     //    helper methods
+//    generate OTP
+    private String generateOTP() {
+        int OTP = ThreadLocalRandom.current().nextInt(1000, 10000);
+        return String.valueOf(OTP);
+    }
 //    generate the ride code
     private String generateRideCode() {
         return "RIDE-" + UUID.randomUUID()
