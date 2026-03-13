@@ -1,18 +1,19 @@
 import api from './api';
 
 const passengerService = {
-  getAvailableRides: async (searchData) => {
-    const response = await api.get('/passenger/get-availableRides', {
-      data: searchData,
-    });
-    return response.data;
-  },
-
-  // Alternative: use POST with query params for search (GET with body may not work in all browsers)
+  /**
+   * Search for available rides.
+   * Backend uses GET with @RequestBody — browsers don't send body with GET.
+   * We use axios.request with explicit method to force the body through.
+   * If this still fails (some proxies strip GET body), the backend
+   * endpoint should be changed to POST.
+   */
   searchRides: async (searchData) => {
-    const response = await api.get('/passenger/get-availableRides', {
-      params: searchData,
+    const response = await api.request({
+      method: 'GET',
+      url: '/passenger/get-availableRides',
       data: searchData,
+      headers: { 'Content-Type': 'application/json' },
     });
     return response.data;
   },
