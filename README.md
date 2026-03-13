@@ -269,4 +269,3 @@ This project is for educational purposes.
 
 ---
 
-**Made with ❤️ by Sanskar Dubey**
