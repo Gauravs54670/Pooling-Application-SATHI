@@ -1,0 +1,107 @@
+.search-page {
+  padding-top: 80px;
+}
+
+.search-hero {
+  background: linear-gradient(135deg, var(--primary-800), var(--primary-600));
+  padding: var(--space-12) 0 var(--space-16);
+  text-align: center;
+}
+
+.search-hero h1 {
+  color: white;
+  font-size: var(--font-size-4xl);
+  font-weight: 800;
+  margin-bottom: var(--space-8);
+}
+
+.search-form-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.search-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.search-submit-btn {
+  width: 100%;
+}
+
+.search-results {
+  padding: var(--space-10) var(--space-6);
+}
+
+.rides-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--space-6);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--space-6);
+}
+
+.modal-content {
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h3 {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin-bottom: var(--space-4);
+}
+
+.modal-route {
+  font-weight: 600;
+  color: var(--primary-600);
+  margin-bottom: var(--space-2);
+}
+
+.modal-driver {
+  color: var(--gray-500);
+  margin-bottom: var(--space-5);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 768px) {
+  .search-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rides-list {
+    grid-template-columns: 1fr;
+  }
+
+  .search-hero h1 {
+    font-size: var(--font-size-3xl);
+  }
+}
