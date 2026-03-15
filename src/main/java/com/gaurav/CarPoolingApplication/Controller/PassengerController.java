@@ -37,7 +37,7 @@ public class PassengerController {
     }
 //    post the ride request
     @PostMapping("/request-ride")
-    public ResponseEntity<?> postRide(
+    public ResponseEntity<?> requestRide(
             Authentication authentication,
             @RequestBody PassengerRideRequest passengerRideRequest) {
         String email = authentication.getName();

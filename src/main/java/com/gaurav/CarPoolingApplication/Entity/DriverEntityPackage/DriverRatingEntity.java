@@ -32,7 +32,7 @@ public class DriverRatingEntity {
     @Max(5)
     @Column(nullable = false)
     private Integer rating;
-    @Size(max = 500)
+    @Size(max = 150)
     private String comment;
     private LocalDateTime reviewedAt;
 }

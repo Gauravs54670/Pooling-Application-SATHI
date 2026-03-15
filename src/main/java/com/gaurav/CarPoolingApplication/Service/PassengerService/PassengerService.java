@@ -26,4 +26,5 @@ public interface PassengerService {
     DriverRatingClass rateDriver(
             String email, Integer rating,
             String comment, String rideCode);
+
 }
