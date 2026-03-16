@@ -63,6 +63,5 @@ public class RideEntity {
     private boolean isRideDeleted = false;
     @Column(nullable = false,unique = true)
     private String rideCode;
-    private String rideOTP;
     private String actualRoutePath;
 }

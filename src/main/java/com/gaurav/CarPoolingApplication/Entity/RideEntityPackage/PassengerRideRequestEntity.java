@@ -28,4 +28,5 @@ public class PassengerRideRequestEntity {
     private RideRequestStatus rideRequestStatus;
     private LocalDateTime rideRequestedAt;
     private LocalDateTime decisionTime;
+    private String rideOTP;
 }

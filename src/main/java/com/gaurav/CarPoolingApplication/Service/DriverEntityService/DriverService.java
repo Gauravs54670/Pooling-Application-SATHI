@@ -6,7 +6,7 @@ import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileUpdateRequest
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerBookingRequest;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.GPSTrackingRequest;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideCompleteResponse;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.RidePostingRequest;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,19 +17,19 @@ public interface DriverService {
     DriverProfileDTO getMyDriverProfile(String email);
     DriverProfileDTO updateDriverProfile(String email, DriverProfileUpdateRequest request);
     String updatePhoto(String email, MultipartFile file);
-    RideResponse postRide(String email, RideRequest request);
     String changeAvailabilityStatus(String email, String availabilityStatus);
     List<RideResponse> getMyPostedRides(String credential);
     String cancelRide(String credential, String rideCode);
     List<BookingResponse> getRideBookings(
             String email,
             String rideCode);
+    RideResponse postRide(String email, RidePostingRequest request);
+    RideResponse postingRideInRoute(String email, RidePostingRequest request, String rideCode);
     DriverRideRequestDecisionResponse rideSharingDecision(
             String email,
             String rideRequestDecision,
             PassengerBookingRequest passengerBookingRequest);
-    String rideStarted(String email, String rideCode, String rideOTP);
-    String rideCompleted(String email, String rideCode);
+    String startRide(String email, String rideCode, Long rideRequestId, String rideOTP);
     RideCompleteResponse completeRide(String email, String rideCode);
     void trackRideGPSLocation(
             String email,

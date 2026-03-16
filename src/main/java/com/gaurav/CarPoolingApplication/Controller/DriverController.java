@@ -5,7 +5,8 @@ import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileUpdateRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerBookingRequest;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.GPSTrackingRequest;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideCompleteResponse;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.RidePostingRequest;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
 import com.gaurav.CarPoolingApplication.Service.DriverEntityService.DriverService;
@@ -60,7 +61,7 @@ public class DriverController {
 //    post a ride by driver
     @PostMapping("/post-ride")
     public ResponseEntity<?> postRide(
-            Authentication authentication, @RequestBody RideRequest rideRequest) {
+            Authentication authentication, @RequestBody RidePostingRequest rideRequest) {
         String email = authentication.getName();
         RideResponse rideResponse = this.driverService.postRide(email, rideRequest);
         return new ResponseEntity<>(Map.of(
@@ -128,13 +129,14 @@ public class DriverController {
         ),HttpStatus.OK);
     }
 //    left to tested
-    @PostMapping("/start-ride")
+    @PostMapping("/start-ride/{requestId}")
     public ResponseEntity<?> startRide(
             Authentication authentication,
             @RequestParam("rideCode") String rideCode,
-            @RequestParam("OTP") String rideOTP) {
+            @RequestParam("OTP") String rideOTP,
+            @PathVariable("requestId") Long requestId) {
         String email = authentication.getName();
-        String message = this.driverService.rideStarted(email,rideCode,rideOTP);
+        String message = this.driverService.startRide(email,rideCode, requestId, rideOTP);
         return new ResponseEntity<>(Map.of(
                 "message", message
         ),HttpStatus.OK);
@@ -144,9 +146,10 @@ public class DriverController {
     public ResponseEntity<?> rideCompleted(
             Authentication authentication, String rideCode) {
         String email = authentication.getName();
-        String message = this.driverService.rideCompleted(email, rideCode);
+        RideCompleteResponse rideCompleteResponse = this.driverService.completeRide(email, rideCode);
         return new ResponseEntity<>(Map.of(
-                "message", message
+                "message", "Ride complete response",
+                "response", rideCompleteResponse
         ),HttpStatus.OK);
     }
 //    track gps

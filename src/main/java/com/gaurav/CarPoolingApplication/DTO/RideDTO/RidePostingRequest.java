@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 @Getter @Setter @Builder
 @AllArgsConstructor @NoArgsConstructor
-public class RideRequest {
+public class RidePostingRequest {
     private Double sourceLat;
     private Double sourceLong;
     private String sourceAddress;
