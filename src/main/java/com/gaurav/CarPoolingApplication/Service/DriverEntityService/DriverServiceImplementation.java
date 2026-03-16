@@ -483,9 +483,6 @@ public class DriverServiceImplementation implements DriverService{
                 .findByRideOrderByRecordedAtAsc(ride);
         if(gpsPoints.size() < 2)
             throw new IllegalStateException("Insufficient GPS data to calculate actual distance.");
-        PassengerRideRequestEntity passengerRideRequest = this
-                .passengerRideRequestRepository.findByRide(ride)
-                .orElseThrow(() -> new ResourceNotFoundException("Passenger Ride request not found."));
         String routePath = gpsPoints.stream()
                 .map(point -> point.getLatitude() + "," + point.getLongitude())
                 .collect(Collectors.joining("|"));
