@@ -4,6 +4,7 @@ import com.gaurav.CarPoolingApplication.DTO.DriverDTO.BookingResponse;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileUpdateRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerBookingRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.GPSTrackingRequest;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideRequest;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
@@ -147,6 +148,16 @@ public class DriverController {
         return new ResponseEntity<>(Map.of(
                 "message", message
         ),HttpStatus.OK);
+    }
+//    track gps
+    @PostMapping("/gps-track/{rideCode}")
+    public ResponseEntity<Void> trackGPSLocation(
+            Authentication authentication,
+            @PathVariable("rideCode") String rideCode,
+            @RequestBody GPSTrackingRequest request) {
+        this.driverService.trackRideGPSLocation(
+                authentication.getName(), rideCode, request);
+        return ResponseEntity.ok().build();
     }
 }
 

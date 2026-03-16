@@ -5,24 +5,20 @@ import com.gaurav.CarPoolingApplication.DTO.DriverDTO.BookingResponse;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileUpdateRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerBookingRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.GPSTrackingRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideCompleteResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideRequest;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.*;
-import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.PassengerRideRequestEntity;
-import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideEntity;
-import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus;
-import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideStatus;
+import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.*;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserAccountStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserRole;
 import com.gaurav.CarPoolingApplication.Exception.InvalidRideStateException;
 import com.gaurav.CarPoolingApplication.Exception.ResourceNotFoundException;
 import com.gaurav.CarPoolingApplication.Exception.UserNotFoundException;
-import com.gaurav.CarPoolingApplication.Repository.DriverEntityRepository;
-import com.gaurav.CarPoolingApplication.Repository.PassengerRideRequestRepository;
-import com.gaurav.CarPoolingApplication.Repository.RideEntityRepository;
-import com.gaurav.CarPoolingApplication.Repository.UserEntityRepository;
+import com.gaurav.CarPoolingApplication.Repository.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -35,6 +31,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -43,12 +40,14 @@ import java.util.stream.Collectors;
 @Transactional
 public class DriverServiceImplementation implements DriverService{
 
+    private final GPSRideTrackingRepository gpsRideTrackingRepository;
     private final RideEntityRepository rideEntityRepository;
     private final Cloudinary cloudinary;
     private final UserEntityRepository userEntityRepository;
     private final DriverEntityRepository driverEntityRepository;
     private final PassengerRideRequestRepository passengerRideRequestRepository;
     public DriverServiceImplementation(
+            GPSRideTrackingRepository gpsRideTrackingRepository,
             PassengerRideRequestRepository passengerRideRequestRepository,
             RideEntityRepository rideEntityRepository,
             Cloudinary cloudinary,
@@ -59,6 +58,7 @@ public class DriverServiceImplementation implements DriverService{
         this.userEntityRepository = userEntityRepository;
         this.cloudinary = cloudinary;
         this.rideEntityRepository = rideEntityRepository;
+        this.gpsRideTrackingRepository = gpsRideTrackingRepository;
     }
     @Override
     public DriverProfileDTO getMyDriverProfile(String email) {
@@ -188,6 +188,10 @@ public class DriverServiceImplementation implements DriverService{
             throw new AccessDeniedException("Driver not verified yet.");
         if(!driverProfile.getDriverAvailabilityStatus().equals(DriverAvailabilityStatus.ONLINE))
             throw new IllegalStateException("Driver must be ONLINE to post ride.");
+        boolean hasRideActive = this.rideEntityRepository
+                .existsByDriverProfileEntityAndRideStatus(driverProfile, RideStatus.ACTIVE);
+        if(hasRideActive)
+            throw new IllegalStateException("Driver already has an active ride request.");
         if(request.getAvailableSeats() <= 0)
             throw new IllegalArgumentException("No seats available.");
         if(request.getDepartureTime().isBefore(LocalDateTime.now()))
@@ -241,14 +245,15 @@ public class DriverServiceImplementation implements DriverService{
                 .totalSeats(ride.getTotalSeats())
                 .availableSeats(ride.getAvailableSeats())
                 .estimatedTotalDistance(ride.getEstimatedTotalDistance())
+                .actualTotalDistance(null)
                 .pricePerKm(ride.getPricePerKm())
                 .estimatedTotalFare(ride.getEstimatedTotalFare())
-                .actualTotalFare(ride.getActualTotalFare())
-                .actualTotalDistance(ride.getActualTotalDistance())
+                .actualTotalFare(null)
                 .rideCreatedAt(ride.getRideCreatedAt())
                 .build();
     }
-//    change the availability status
+
+    //    change the availability status
     @Override
     public String changeAvailabilityStatus(String email, String availabilityStatus) {
         UserEntity user = this.userEntityRepository.findByEmail(email)
@@ -438,10 +443,9 @@ public class DriverServiceImplementation implements DriverService{
         validateUserAccount(driver);
         DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
-        RideEntity ride = this.rideEntityRepository.findByRideCode(rideCode)
+        RideEntity ride = this.rideEntityRepository
+                .findByDriverProfileEntity_DriverIdAndRideCode(driverProfile.getDriverId(),rideCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Ride not exist."));
-        if(!ride.getDriverProfileEntity().getDriverId().equals(driverProfile.getDriverId()))
-            throw new AccessDeniedException("You do not own this ride.");
         if(!ride.getRideStatus().equals(RideStatus.STARTED))
             throw new InvalidRideStateException("Ride must be STARTED before completion.");
         //payment process lie here {}
@@ -451,7 +455,103 @@ public class DriverServiceImplementation implements DriverService{
         this.rideEntityRepository.save(ride);
         return "Ride completed.";
     }
-
+//    the method will get executed when the ride is completed
+//      In-memory buffer to collect GPS points per ride before flushing to DB.
+//      Key = rideCode, Value = list of GPS points collected so far.
+//      ConcurrentHashMap is used because multiple threads may call this simultaneously.
+//      track GPS location background job
+    private final Map<String, List<GPSRideTrackingEntity>> gpsBuffer = new ConcurrentHashMap<>();
+    @Override @Transactional
+    public RideCompleteResponse completeRide(String email, String rideCode) {
+        UserEntity driver = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateUserAccount(driver);
+        DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
+        RideEntity ride = this.rideEntityRepository
+                .findByDriverProfileEntity_DriverIdAndRideCode(driverProfile.getDriverId(), rideCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Invalid ride. Ride not found."));
+        if(!ride.getRideStatus().equals(RideStatus.STARTED))
+            throw new InvalidRideStateException("Ride must be STARTED before completion.");
+        // flush remaining buffered GPS points to DB before calculation
+        List<GPSRideTrackingEntity> remainingGPSPoints = gpsBuffer.getOrDefault(rideCode,new ArrayList<>());
+        if(!remainingGPSPoints.isEmpty()) {
+            this.gpsRideTrackingRepository.saveAll(remainingGPSPoints);
+            gpsBuffer.remove(rideCode);
+        }
+        List<GPSRideTrackingEntity> gpsPoints = this.gpsRideTrackingRepository
+                .findByRideOrderByRecordedAtAsc(ride);
+        if(gpsPoints.size() < 2)
+            throw new IllegalStateException("Insufficient GPS data to calculate actual distance.");
+        PassengerRideRequestEntity passengerRideRequest = this
+                .passengerRideRequestRepository.findByRide(ride)
+                .orElseThrow(() -> new ResourceNotFoundException("Passenger Ride request not found."));
+        String routePath = gpsPoints.stream()
+                .map(point -> point.getLatitude() + "," + point.getLongitude())
+                .collect(Collectors.joining("|"));
+        ride.setActualRoutePath(routePath);
+//        delete gps points from table
+        this.gpsRideTrackingRepository.deleteByRide(ride);
+        double actualDistance = 0.0;
+        for(int i = 0; i < gpsPoints.size() - 1; i++) {
+            actualDistance += calculateDistance(
+                    gpsPoints.get(i).getLatitude(),
+                    gpsPoints.get(i).getLongitude(),
+                    gpsPoints.get(i + 1).getLatitude(),
+                    gpsPoints.get(i + 1).getLongitude()
+            );
+        }
+        BigDecimal actualTotalDistance = BigDecimal.valueOf(actualDistance)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal actualTotalFare = ride.getPricePerKm()
+                .multiply(actualTotalDistance)
+                .setScale(2, RoundingMode.HALF_UP);
+        ride.setActualTotalDistance(actualTotalDistance);
+        ride.setActualTotalFare(actualTotalFare);
+        ride.setRideStatus(RideStatus.COMPLETED);
+        ride.setRideCompletedAt(LocalDateTime.now());
+        ride.setRideUpdatedAt(LocalDateTime.now());
+        this.rideEntityRepository.save(ride);
+        driverProfile.setTotalCompletedRides(
+                driverProfile.getTotalCompletedRides() + 1);
+        this.driverEntityRepository.save(driverProfile);
+        return RideCompleteResponse.builder()
+                .rideCode(ride.getRideCode())
+                .sourceAddress(ride.getSourceAddress())
+                .destinationAddress(ride.getDestinationAddress())
+                .departureTime(ride.getDepartureTime())
+                .rideCompletedAt(ride.getRideCompletedAt())
+                .estimatedTotalDistance(ride.getEstimatedTotalDistance())
+                .actualTotalDistance(ride.getActualTotalDistance())
+                .estimatedTotalFare(ride.getEstimatedTotalFare())
+                .actualTotalFare(ride.getActualTotalFare())
+                .totalSeats(ride.getTotalSeats())
+                .availableSeats(ride.getAvailableSeats())
+                .build();
+    }
+    @Override
+    public void trackRideGPSLocation(String email, String rideCode, GPSTrackingRequest request) {
+        RideEntity ride = this.rideEntityRepository.findByRideCode(rideCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found."));
+        if(!ride.getRideStatus().equals(RideStatus.STARTED))
+            throw new InvalidRideStateException("GPS tracking only allowed for STARTED rides.");
+        if(!ride.getDriverProfileEntity().getUser().getEmail().equals(email))
+            throw new AccessDeniedException("Unauthorized.");
+        GPSRideTrackingEntity point = GPSRideTrackingEntity.builder()
+                .ride(ride)
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .recordedAt(LocalDateTime.now())
+                .build();
+        // add the point to the in-memory buffer for this ride.
+        // if no buffer exists for this rideCode yet, create a new list first.
+        gpsBuffer.computeIfAbsent(rideCode, k -> new ArrayList<>()).add(point);
+        // flush to DB every 10 points
+        if(gpsBuffer.get(rideCode).size() >= 10) {
+            this.gpsRideTrackingRepository.saveAll(gpsBuffer.get(rideCode));
+            gpsBuffer.get(rideCode).clear();
+        }
+    }
     //    helper methods
 //    generate OTP
     private String generateOTP() {

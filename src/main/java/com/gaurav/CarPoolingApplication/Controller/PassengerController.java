@@ -1,10 +1,7 @@
 package com.gaurav.CarPoolingApplication.Controller;
 
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRatingClass;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequest;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestResponse;
+import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.*;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideSearchRequestDTO;
 import com.gaurav.CarPoolingApplication.Service.PassengerService.PassengerService;
@@ -88,6 +85,19 @@ public class PassengerController {
         return new ResponseEntity<>(Map.of(
                 "message", "Review done successfully",
                 "response", driverRatingClass
+        ),HttpStatus.OK);
+    }
+//    get ride history
+    @GetMapping("/ride-history")
+    public ResponseEntity<?> getRideHistory(
+            Authentication authentication,
+            @RequestParam("rideStatus") String rideStatus){
+        String email = authentication.getName();
+        List<PassengerRideHistoryDTO> passengerRideHistories = this
+                .passengerService.getRideHistory(email, rideStatus);
+        return new ResponseEntity<>(Map.of(
+                "message", "Ride History",
+                "response", passengerRideHistories
         ),HttpStatus.OK);
     }
 }

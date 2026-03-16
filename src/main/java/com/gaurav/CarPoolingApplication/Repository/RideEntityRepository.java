@@ -2,7 +2,9 @@ package com.gaurav.CarPoolingApplication.Repository;
 
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
+import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverProfileEntity;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideEntity;
+import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +15,9 @@ import java.util.Optional;
 
 @Repository
 public interface RideEntityRepository extends JpaRepository<RideEntity, Long> {
+
+//    check if the driver already posted a ride or not
+    boolean existsByDriverProfileEntityAndRideStatus(DriverProfileEntity driverProfile, RideStatus rideStatus);
     Optional<RideEntity> findByDriverProfileEntity_DriverIdAndRideCode(Long driverId, String rideCode);
     @Query("""
                 SELECT new com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse(
@@ -69,4 +74,5 @@ public interface RideEntityRepository extends JpaRepository<RideEntity, Long> {
             AND r.departureTime > CURRENT_TIMESTAMP
             """)
     List<RideEntity> findAvailableRides();
+
 }

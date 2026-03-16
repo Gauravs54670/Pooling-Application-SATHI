@@ -4,6 +4,8 @@ import com.gaurav.CarPoolingApplication.DTO.DriverDTO.BookingResponse;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileUpdateRequest;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerBookingRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.GPSTrackingRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideCompleteResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideRequest;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
@@ -28,5 +30,9 @@ public interface DriverService {
             PassengerBookingRequest passengerBookingRequest);
     String rideStarted(String email, String rideCode, String rideOTP);
     String rideCompleted(String email, String rideCode);
-
+    RideCompleteResponse completeRide(String email, String rideCode);
+    void trackRideGPSLocation(
+            String email,
+            String rideCode,
+            GPSTrackingRequest gpsTrackingRequest);
 }

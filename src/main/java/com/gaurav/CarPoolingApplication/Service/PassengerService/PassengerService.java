@@ -1,10 +1,7 @@
 package com.gaurav.CarPoolingApplication.Service.PassengerService;
 
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRatingClass;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequest;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestResponse;
+import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.*;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideSearchRequestDTO;
 
@@ -26,5 +23,5 @@ public interface PassengerService {
     DriverRatingClass rateDriver(
             String email, Integer rating,
             String comment, String rideCode);
-
+    List<PassengerRideHistoryDTO> getRideHistory(String email,String rideStatus);
 }

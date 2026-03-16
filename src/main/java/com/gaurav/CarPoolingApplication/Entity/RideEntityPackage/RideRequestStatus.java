@@ -4,5 +4,6 @@ public enum RideRequestStatus {
     PENDING,
     ACCEPTED,
     REJECTED,
-    CANCELLED
+    CANCELLED,
+    COMPLETED
 }

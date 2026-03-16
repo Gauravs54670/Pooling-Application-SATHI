@@ -1,10 +1,7 @@
 package com.gaurav.CarPoolingApplication.Service.PassengerService;
 
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRatingClass;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequest;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestResponse;
+import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.*;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideSearchRequestDTO;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverProfileEntity;
@@ -219,6 +216,30 @@ public class PassengerServiceImplementation implements PassengerService{
                 .rideCode(rideCode)
                 .build();
     }
+//    get the history of the rides
+    @Override
+    public List<PassengerRideHistoryDTO> getRideHistory(String email, String rideStatus) {
+        UserEntity passenger = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validatePassengerAccount(passenger);
+        if(rideStatus == null || rideStatus.isEmpty())
+            throw new IllegalArgumentException("Ride status can't be empty or blank");
+        RideRequestStatus status;
+        try {
+            status = RideRequestStatus.valueOf(rideStatus.trim().toUpperCase());
+        }
+        catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(ex.getMessage() +
+                    " Allowed values are " +
+                    "COMPLETED,\n" +
+                    "CANCELLED,");
+        }
+        return this
+                .passengerRideRequestRepository
+                .getPassengerRideHistory(passenger.getUserId()
+                        , status == RideRequestStatus.COMPLETED ? RideRequestStatus.COMPLETED : RideRequestStatus.CANCELLED);
+    }
+
     //    helper methods
 //    validate the passenger's account
     private void validatePassengerAccount(UserEntity user) {

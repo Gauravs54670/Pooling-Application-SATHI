@@ -64,4 +64,5 @@ public class RideEntity {
     @Column(nullable = false,unique = true)
     private String rideCode;
     private String rideOTP;
+    private String actualRoutePath;
 }

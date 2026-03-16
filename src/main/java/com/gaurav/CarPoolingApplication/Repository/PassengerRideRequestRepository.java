@@ -2,8 +2,11 @@ package com.gaurav.CarPoolingApplication.Repository;
 
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.BookingResponse;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
+import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideHistoryDTO;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.PassengerRideRequestEntity;
+import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideEntity;
+import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -79,4 +82,33 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
                 @Param("userId") Long userId,
                 @Param("date") LocalDate date
         );
+    //    get passenger ride history
+        @Query("""
+                SELECT new com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideHistoryDTO(
+                    r.requestId,
+                    r.rideCode,
+                    r.sourceAddress,
+                    r.destinationAddress,
+                    r.ride.actualTotalFare,
+                    r.ride.actualTotalDistance,
+                    r.requestedSeats,
+                    r.ride.vehicleClass,
+                    r.ride.vehicleCategory,
+                    r.ride.driverProfileEntity.vehicleModel,
+                    r.rideRequestedAt,
+                    r.ride.departureTime,
+                    r.ride.rideCompletedAt,
+                    r.ride.driverProfileEntity.user.userFullName,
+                    r.ride.driverProfileEntity.driverProfileUrl,
+                    r.ride.driverProfileEntity.averageRatingOfDriver
+                )
+                FROM PassengerRideRequestEntity r
+                WHERE r.passenger.userId = :userId
+                AND r.ride.rideStatus = :rideStatus
+                """)
+        List<PassengerRideHistoryDTO> getPassengerRideHistory(
+                @Param("userId") Long userId,
+                @Param("rideStatus") RideRequestStatus rideStatus);
+
+    Optional<PassengerRideRequestEntity> findByRide(RideEntity ride);
 }
