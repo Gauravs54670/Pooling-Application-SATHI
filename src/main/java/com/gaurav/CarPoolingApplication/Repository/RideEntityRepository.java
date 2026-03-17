@@ -68,11 +68,19 @@ public interface RideEntityRepository extends JpaRepository<RideEntity, Long> {
     List<AvailableRidesDTO> getAllAvailableRides();
     Optional<RideEntity> findByRideCode(String rideCode);
     @Query("""
-            SELECT r FROM RideEntity r
-            WHERE r.rideStatus = ACTIVE
-            AND r.availableSeats >= 0
-            AND r.departureTime > CURRENT_TIMESTAMP
-            """)
-    List<RideEntity> findAvailableRides();
-
+        SELECT r FROM RideEntity r
+        WHERE r.rideStatus = 'ACTIVE'
+        AND r.availableSeats > 0
+        AND r.departureTime > CURRENT_TIMESTAMP
+        AND r.sourceLat BETWEEN :sourceLat - :radius AND :sourceLat + :radius
+        AND r.sourceLong BETWEEN :sourceLong - :radius AND :sourceLong + :radius
+        AND r.destinationLat BETWEEN :destinationLat - :radius AND :destinationLat + :radius
+        AND r.destinationLong BETWEEN :destinationLong - :radius AND :destinationLong + :radius
+        """)
+    List<RideEntity> findAvailableRides(
+            @Param("sourceLat") double sourceLat,
+            @Param("sourceLong") double sourceLong,
+            @Param("destinationLat") double destinationLat,
+            @Param("destinationLong") double destinationLong,
+            @Param("radius") double radius);
 }

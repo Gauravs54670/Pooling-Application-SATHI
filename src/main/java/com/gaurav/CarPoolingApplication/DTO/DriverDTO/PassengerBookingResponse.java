@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor @NoArgsConstructor
 @Getter @Setter
 @Builder
-public class BookingResponse {
+public class PassengerBookingResponse {
     private Long requestId;
     private String passengerName;
     private Integer requestedSeats;
@@ -21,7 +21,7 @@ public class BookingResponse {
     private Double distanceFromRideSource;
     private String rideRequestStatus;
     private LocalDateTime requestCreatedAt;
-    public BookingResponse(
+    public PassengerBookingResponse(
             Long requestId,
             String passengerName,
             Integer requestedSeats,

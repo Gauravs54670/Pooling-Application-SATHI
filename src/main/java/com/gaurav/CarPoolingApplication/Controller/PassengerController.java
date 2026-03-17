@@ -66,7 +66,7 @@ public class PassengerController {
             @RequestParam(required = false)LocalDate date) {
         String email = authentication.getName();
         List<MyRideRequests> myRideRequests =
-                this.passengerService.getMyRideRequestStatus(email, date);
+                this.passengerService.getMyRideRequestStatus(email, , date);
         return new ResponseEntity<>(Map.of(
                 "message", "Requests Fetched",
                 "response", myRideRequests

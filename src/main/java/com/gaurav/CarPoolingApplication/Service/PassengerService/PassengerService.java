@@ -5,7 +5,6 @@ import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.*;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideSearchRequestDTO;
 
-import java.time.LocalDate;
 import java.util.List;
 
 public interface PassengerService {
@@ -19,7 +18,7 @@ public interface PassengerService {
             String email,
             Long requestId,
             String rideCode);
-    List<MyRideRequests> getMyRideRequestStatus(String email, LocalDate date);
+    MyRideRequests getMyRideRequestStatus(String email, Long requestId);
     DriverRatingClass rateDriver(
             String email, Integer rating,
             String comment, String rideCode);

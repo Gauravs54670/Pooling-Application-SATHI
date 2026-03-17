@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
 
 @AllArgsConstructor @NoArgsConstructor
 @Getter @Setter @Builder
-@Entity @Table(name = "ride_entity")
+@Entity @Table(name = "ride_entity",indexes = {
+        @Index(columnList = "sourceLat, sourceLong, destinationLat, destinationLong, rideStatus")
+})
 public class RideEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

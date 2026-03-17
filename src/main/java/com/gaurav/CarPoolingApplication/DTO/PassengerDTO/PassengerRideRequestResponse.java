@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 @Getter @Setter @Builder
 public class PassengerRideRequestResponse {
     private Long requestId;
-    private String rideCode;
     private String passengerName;
     private String passengerPhoneNumber;
     private String driverName;
@@ -20,7 +19,6 @@ public class PassengerRideRequestResponse {
     private LocalDateTime departureTime;
     public PassengerRideRequestResponse(
             Long requestId,
-            String rideCode,
             String passengerName,
             String passengerPhoneNumber,
             String driverName,
@@ -32,7 +30,6 @@ public class PassengerRideRequestResponse {
             LocalDateTime departureTime
     ) {
         this.requestId = requestId;
-        this.rideCode = rideCode;
         this.passengerName = passengerName;
         this.passengerPhoneNumber = passengerPhoneNumber;
         this.driverName = driverName;

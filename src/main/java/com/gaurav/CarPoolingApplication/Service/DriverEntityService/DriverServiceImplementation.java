@@ -1,10 +1,9 @@
 package com.gaurav.CarPoolingApplication.Service.DriverEntityService;
 
 import com.cloudinary.Cloudinary;
-import com.gaurav.CarPoolingApplication.DTO.DriverDTO.BookingResponse;
+import com.gaurav.CarPoolingApplication.DTO.DriverDTO.PassengerBookingResponse;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileUpdateRequest;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerBookingRequest;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.GPSTrackingRequest;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideCompleteResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RidePostingRequest;
@@ -176,6 +175,38 @@ public class DriverServiceImplementation implements DriverService{
         this.driverEntityRepository.save(driverProfileEntity);
         return profileUrl;
     }
+    //    change the availability status
+    @Override
+    public String changeAvailabilityStatus(String email, String availabilityStatus) {
+        UserEntity user = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateUserAccount(user);
+        DriverProfileEntity driverProfileEntity = this.driverEntityRepository.findByUserEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
+        DriverAvailabilityStatus availability;
+        try {
+            availability = DriverAvailabilityStatus.valueOf(availabilityStatus.trim().toUpperCase());
+        }
+        catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(ex.getMessage() + " " +
+                    "Allowed values are ONLINE, OFFLINE");
+        }
+        driverProfileEntity.setDriverAvailabilityStatus(availability);
+        this.driverEntityRepository.save(driverProfileEntity);
+        return "Driver availability change to " + availabilityStatus;
+    }
+//    fetch all the posted ride by driver
+    @Override
+    public List<RideResponse> getMyPostedRides(String credential) {
+        UserEntity user = this.userEntityRepository.findByEmail(credential)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        validateUserAccount(user);
+        DriverProfileEntity driverProfileEntity = this.driverEntityRepository.findByUserEmail(credential)
+                .orElseThrow(() -> new UserNotFoundException("Driver profile not found."));
+        if(!driverProfileEntity.getDriverVerificationStatus().equals(DriverVerificationStatus.APPROVED))
+            throw new AccessDeniedException("Access Denied. Only approved drivers can access this resource.");
+        return this.rideEntityRepository.getDriverPostedRides(driverProfileEntity.getDriverId());
+    }
 //    post a ride by driver
     @Override @Transactional
     public RideResponse postRide(String email, RidePostingRequest request) {
@@ -248,71 +279,18 @@ public class DriverServiceImplementation implements DriverService{
                 .rideCreatedAt(ride.getRideCreatedAt())
                 .build();
     }
-    //    change the availability status
-    @Override
-    public String changeAvailabilityStatus(String email, String availabilityStatus) {
-        UserEntity user = this.userEntityRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found."));
-        validateUserAccount(user);
-        DriverProfileEntity driverProfileEntity = this.driverEntityRepository.findByUserEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
-        DriverAvailabilityStatus availability;
-        try {
-            availability = DriverAvailabilityStatus.valueOf(availabilityStatus.trim().toUpperCase());
-        }
-        catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException(ex.getMessage() + " " +
-                    "Allowed values are ONLINE, OFFLINE");
-        }
-        driverProfileEntity.setDriverAvailabilityStatus(availability);
-        this.driverEntityRepository.save(driverProfileEntity);
-        return "Driver availability change to " + availabilityStatus;
-    }
-//    fetch all the posted ride by driver
-    @Override
-    public List<RideResponse> getMyPostedRides(String credential) {
-        UserEntity user = this.userEntityRepository.findByEmail(credential)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        validateUserAccount(user);
-        DriverProfileEntity driverProfileEntity = this.driverEntityRepository.findByUserEmail(credential)
-                .orElseThrow(() -> new UserNotFoundException("Driver profile not found."));
-        if(!driverProfileEntity.getDriverVerificationStatus().equals(DriverVerificationStatus.APPROVED))
-            throw new AccessDeniedException("Access Denied. Only approved drivers can access this resource.");
-        return this.rideEntityRepository.getDriverPostedRides(driverProfileEntity.getDriverId());
-    }
-//    cancel posted ride request
-    @Override
-    public String cancelRide(String credential, String rideCode) {
-        UserEntity user = this.userEntityRepository.findByEmail(credential)
-                .orElseThrow(() -> new UserNotFoundException("User not found."));
-        validateUserAccount(user);
-        DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(credential)
-                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
-        RideEntity rideEntity = this.rideEntityRepository
-                .findByDriverProfileEntity_DriverIdAndRideCode(driverProfile.getDriverId(), rideCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Ride not found."));
-        if (!rideEntity.getRideStatus().equals(RideStatus.ACTIVE))
-            throw new InvalidRideStateException(
-                    "Only scheduled rides can be cancelled."
-            );
-        rideEntity.setRideStatus(RideStatus.CANCELLED);
-        rideEntity.setRideDeleted(true);
-        this.rideEntityRepository.save(rideEntity);
-        return "Ride entity with ride code " + rideCode +" is cancelled.";
-    }
 //    let driver know requests are queued for ride-sharing
     @Override
-    public List<BookingResponse> getRideBookings(String email, String rideCode) {
+    public List<PassengerBookingResponse> getRideBookings(String email, String rideCode) {
         UserEntity driver = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateUserAccount(driver);
         DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(email)
                         .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
-        validateUserAccount(driver);
-        RideEntity ride = this.rideEntityRepository.findByRideCode(rideCode)
+        RideEntity ride = this.rideEntityRepository
+                .findByDriverProfileEntity_DriverIdAndRideCode(driverProfile.getDriverId(),rideCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Ride not found."));
-        if(!ride.getDriverProfileEntity().getDriverId().equals(driverProfile.getDriverId()))
-            throw new AccessDeniedException("You are not the owner of the ride.");
-        List<BookingResponse> bookingResponses =
+        List<PassengerBookingResponse> bookingResponses =
                 this.passengerRideRequestRepository.getAllBookingRequests(rideCode,driverProfile.getDriverId());
         bookingResponses = bookingResponses.stream()
                 .peek(response -> {
@@ -322,9 +300,9 @@ public class DriverServiceImplementation implements DriverService{
                             response.getPassengerSourceLat(),
                             response.getPassengerSourceLong()
                     );
-                    response.setDistanceFromDriver(distance);
+                    response.setDistanceFromRideSource(distance);
                 })
-                .sorted(Comparator.comparing(BookingResponse::getDistanceFromDriver))
+                .sorted(Comparator.comparing(PassengerBookingResponse::getDistanceFromRideSource))
                 .toList();
         return bookingResponses;
     }
@@ -332,8 +310,7 @@ public class DriverServiceImplementation implements DriverService{
     @Override @Transactional
     public DriverRideRequestDecisionResponse rideSharingDecision(
             String email,
-            String rideRequestDecision,
-            PassengerBookingRequest passengerBookingRequest) {
+            String rideRequestDecision, Long requestId) {
         UserEntity driver = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
         validateUserAccount(driver);
@@ -348,19 +325,10 @@ public class DriverServiceImplementation implements DriverService{
                         ACCEPTED,
                         REJECTED,""");
         }
-        RideEntity ride = this.rideEntityRepository.findByRideCode(passengerBookingRequest.getRideCode())
-                .orElseThrow(() -> new ResourceNotFoundException("Ride not found."));
-//        validate ride belongs to driver
-        if(!ride.getDriverProfileEntity().getUser().getUserId().equals(driver.getUserId()))
-            throw new AccessDeniedException("You are not owner of this ride.");
         PassengerRideRequestEntity passengerRideRequest =
-                this.passengerRideRequestRepository.findById(passengerBookingRequest.getRequestId())
+                this.passengerRideRequestRepository.findById(requestId)
                         .orElseThrow(() -> new ResourceNotFoundException("Ride request not found."));
-//        verify that request belongs to the ride
-        if(!passengerRideRequest.getRide().getRideId().equals(ride.getRideId()))
-            throw new AccessDeniedException("Invalid ride request.");
-        if (ride.getRideStatus() != RideStatus.ACTIVE || ride.isRideDeleted())
-            throw new InvalidRideStateException("Ride not active.");
+        RideEntity ride = getRideEntity(passengerRideRequest, driver);
         if(ride.getDepartureTime().isBefore(LocalDateTime.now()))
             throw new IllegalStateException("Ride is expired.");
         if(passengerRideRequest.getRideRequestStatus() != (RideRequestStatus.PENDING))
@@ -388,21 +356,35 @@ public class DriverServiceImplementation implements DriverService{
         passengerRideRequest.setDecisionTime(decisionTime);
         this.passengerRideRequestRepository.save(passengerRideRequest);
         return DriverRideRequestDecisionResponse.builder()
-                .requestId(passengerRideRequest.getRequestId())
-                .rideCode(ride.getRideCode())
-                .passengerName(
-                        rideRequestStatus == (RideRequestStatus.ACCEPTED) ?
-                                passengerRideRequest.getPassenger().getUserFullName() : null)
-                .passengerPhoneNumber(
-                        rideRequestStatus == (RideRequestStatus.ACCEPTED) ?
-                                passengerRideRequest.getPassenger().getPhoneNumber() : null)
-                .approvedSeats(passengerRideRequest.getRequestedSeats())
-                .requestStatus(rideRequestStatus.toString())
-                .rideOTP(rideOtp.isEmpty() ? null : rideOtp)
+                .requestId(requestId)
+                .passengerName(rideRequestStatus == RideRequestStatus.ACCEPTED ?
+                        passengerRideRequest.getPassenger().getUserFullName() : null)
+                .passengerPhoneNumber(rideRequestStatus == RideRequestStatus.ACCEPTED ?
+                        passengerRideRequest.getPassenger().getPhoneNumber() : null)
+                .approvedSeats(rideRequestStatus == RideRequestStatus.ACCEPTED ?
+                        passengerRideRequest.getRequestedSeats() : null)
+                .requestStatus(rideRequestStatus.name())
+                .passengerPickUpAddress(rideRequestStatus == RideRequestStatus.ACCEPTED ?
+                        passengerRideRequest.getSourceAddress() : null)
+                .passengerDropAddress(rideRequestStatus == RideRequestStatus.ACCEPTED ?
+                        passengerRideRequest.getDestinationAddress() : null)
                 .decisionTime(decisionTime)
                 .build();
     }
-//    start ride by driver
+//    get ride entity
+    private static RideEntity getRideEntity(
+        PassengerRideRequestEntity passengerRideRequest, UserEntity driver) {
+        RideEntity ride = passengerRideRequest.getRide();
+        if(ride == null)
+            throw new ResourceNotFoundException("Ride not found.");
+//        validate ride belongs to driver
+        if(!ride.getDriverProfileEntity().getUser().getUserId().equals(driver.getUserId()))
+            throw new AccessDeniedException("You are not owner of this ride.");
+        if (ride.getRideStatus() != RideStatus.ACTIVE || ride.isRideDeleted())
+            throw new InvalidRideStateException("Ride not active.");
+        return ride;
+    }
+    //    start ride by driver
     @Override @Transactional
     public String startRide(String email, String rideCode, Long rideRequestId, String rideOTP) {
         UserEntity driver = this.userEntityRepository.findByEmail(email)
@@ -524,6 +506,26 @@ public class DriverServiceImplementation implements DriverService{
             this.gpsRideTrackingRepository.saveAll(gpsBuffer.get(rideCode));
             gpsBuffer.get(rideCode).clear();
         }
+    }
+//    cancel posted ride request
+    @Override
+    public String cancelRide(String credential, String rideCode) {
+        UserEntity user = this.userEntityRepository.findByEmail(credential)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateUserAccount(user);
+        DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(credential)
+                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
+        RideEntity rideEntity = this.rideEntityRepository
+                .findByDriverProfileEntity_DriverIdAndRideCode(driverProfile.getDriverId(), rideCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found."));
+        if (!rideEntity.getRideStatus().equals(RideStatus.ACTIVE))
+            throw new InvalidRideStateException(
+                    "Only scheduled rides can be cancelled."
+            );
+        rideEntity.setRideStatus(RideStatus.CANCELLED);
+        rideEntity.setRideDeleted(true);
+        this.rideEntityRepository.save(rideEntity);
+        return "Ride entity with ride code " + rideCode +" is cancelled.";
     }
     //    helper methods
 //    generate OTP

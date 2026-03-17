@@ -7,11 +7,11 @@ import java.time.LocalDateTime;
 @Getter @Setter @Builder
 public class DriverRideRequestDecisionResponse {
     private Long requestId;
-    private String rideCode;
     private String passengerName;
     private String passengerPhoneNumber;
     private Integer approvedSeats;
     private String requestStatus;
-    private String rideOTP;
+    private String passengerPickUpAddress;
+    private String passengerDropAddress;
     private LocalDateTime decisionTime;
 }

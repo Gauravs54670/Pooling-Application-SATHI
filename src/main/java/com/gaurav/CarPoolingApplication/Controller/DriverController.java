@@ -1,9 +1,8 @@
 package com.gaurav.CarPoolingApplication.Controller;
 
-import com.gaurav.CarPoolingApplication.DTO.DriverDTO.BookingResponse;
+import com.gaurav.CarPoolingApplication.DTO.DriverDTO.PassengerBookingResponse;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileUpdateRequest;
-import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerBookingRequest;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.GPSTrackingRequest;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideCompleteResponse;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RidePostingRequest;
@@ -106,23 +105,22 @@ public class DriverController {
             Authentication authentication,
             @RequestParam("rideCode") String rideCode) {
         String email = authentication.getName();
-        List<BookingResponse> bookingResponses = this.driverService.getRideBookings(email, rideCode);
+        List<PassengerBookingResponse> bookingResponses = this.driverService.getRideBookings(email, rideCode);
         return new ResponseEntity<>(Map.of(
                 "message", "Requested Rides",
                 "response", bookingResponses
         ),HttpStatus.OK);
     }
-    @PutMapping("/ride-request-decision")
+    @PutMapping("/request-decision/{requestId}")
     public ResponseEntity<?> rideRequestDecision(
             Authentication authentication,
             @RequestParam("decision") String decision,
-            @RequestBody PassengerBookingRequest passengerBookingRequest) {
+            @PathVariable("requestId") Long rideRequestId) {
         String email = authentication.getName();
         DriverRideRequestDecisionResponse requestDecisionResponse =
                 this.driverService.rideSharingDecision(
                         email,
-                        decision,
-                        passengerBookingRequest);
+                        decision,rideRequestId);
         return new ResponseEntity<>(Map.of(
                 "message", "Ride Decision Response",
                 "response", requestDecisionResponse

@@ -1,6 +1,6 @@
 package com.gaurav.CarPoolingApplication.Repository;
 
-import com.gaurav.CarPoolingApplication.DTO.DriverDTO.BookingResponse;
+import com.gaurav.CarPoolingApplication.DTO.DriverDTO.PassengerBookingResponse;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideHistoryDTO;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideRequestDecisionResponse;
@@ -23,7 +23,6 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
     @Query("""
             SELECT new com.gaurav.CarPoolingApplication.DTO.DriverDTO.BookingResponse(
                 r.requestId,
-                r.rideCode,
                 r.passenger.userFullName,
                 r.requestedSeats,
                 r.sourceLong,
@@ -38,8 +37,9 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
             FROM PassengerRideRequestEntity r
             WHERE r.rideCode = :rideCode
             AND r.ride.driverProfileEntity.driverId = :driverId
+            AND r.rideRequestStatus = com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus.PENDING
             """)
-    List<BookingResponse> getAllBookingRequests(
+    List<PassengerBookingResponse> getAllBookingRequests(
             @Param("rideCode") String rideCode,
             @Param("driverId") Long driverId
     );
@@ -68,20 +68,22 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
     PassengerRideRequestDecisionResponse getDecisionResponse(
             @Param("requestId") Long requestId,
             @Param("rideCode") String rideCode);
-        @Query("""
-           SELECT new com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests(
-                r.rideCode,
+//    get ride request response (driver accepted the ride request or not)
+    @Query("""
+            SELECT new com.gaurav.CarPoolingApplication.DTO.PassengerDTO.MyRideRequests(
+                r.requestId,
+                r.ride.driverProfileEntity.user.userFullName,
+                r.ride.driverProfileEntity.user.phoneNumber,
+                r.ride.driverProfileEntity.driverProfileUrl,
                 r.rideRequestStatus
-           )
-           FROM PassengerRideRequestEntity r
-           WHERE r.passenger.userId = :userId
-           AND DATE(r.rideRequestedAt) = :date
-           ORDER BY r.rideRequestedAt DESC
-           """)
-        List<MyRideRequests> getMyRidesRequestStatus(
-                @Param("userId") Long userId,
-                @Param("date") LocalDate date
-        );
+            )
+            FROM PassengerRideRequestEntity r
+            WHERE r.requestId = :requestId
+            AND r.rideRequestStatus = :rideRequestStatus
+            """)
+    MyRideRequests ridesRequestedByDriver(
+            @Param("requestId") Long requestId,
+            @Param("rideRequestStatus") RideRequestStatus rideRequestStatus);
     //    get passenger ride history
         @Query("""
                 SELECT new com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideHistoryDTO(
@@ -109,6 +111,5 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
         List<PassengerRideHistoryDTO> getPassengerRideHistory(
                 @Param("userId") Long userId,
                 @Param("rideStatus") RideRequestStatus rideStatus);
-
-    Optional<PassengerRideRequestEntity> findByRide(RideEntity ride);
+    Optional<PassengerRideRequestEntity> findByPassengerAndRequestId(UserEntity passenger, Long requestId);
 }

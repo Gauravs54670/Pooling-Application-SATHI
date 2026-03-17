@@ -12,6 +12,7 @@ import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStat
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserAccountStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
+import com.gaurav.CarPoolingApplication.Exception.InvalidRideStateException;
 import com.gaurav.CarPoolingApplication.Exception.ResourceNotFoundException;
 import com.gaurav.CarPoolingApplication.Exception.UserNotFoundException;
 import com.gaurav.CarPoolingApplication.Repository.*;
@@ -20,9 +21,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -54,23 +53,18 @@ public class PassengerServiceImplementation implements PassengerService{
         UserEntity passenger = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
         validatePassengerAccount(passenger);
-        List<RideEntity> totalRides = this.rideEntityRepository.findAvailableRides();
-        List<AvailableRidesDTO> allCompatibleRides = new ArrayList<>();
-        for(RideEntity r : totalRides) {
-            double sourceDistance = calculateDistance(
-                    rideSearchRequestDTO.getPassengerSourceLat(),
-                    rideSearchRequestDTO.getPassengerSourceLong(),
-                    r.getSourceLat(),
-                    r.getSourceLong());
-            double destinationDistance = calculateDistance(
-                    rideSearchRequestDTO.getPassengerDestinationLat(),
-                    rideSearchRequestDTO.getPassengerDestinationLong(),
-                    r.getDestinationLat(),
-                    r.getDestinationLong());
-            if(sourceDistance <= 1.5 && destinationDistance <= 1.5)
-                allCompatibleRides.add(mapToAvailableRideDTO(r));
-        }
-        return allCompatibleRides;
+        // 1.5km in degrees ≈ 0.015 (1 degree ≈ 111km)
+        double radius = 1.5 / 111.0;
+        List<RideEntity> totalRides = this.rideEntityRepository.findAvailableRides(
+                rideSearchRequestDTO.getPassengerSourceLat(),
+                rideSearchRequestDTO.getPassengerSourceLong(),
+                rideSearchRequestDTO.getPassengerDestinationLat(),
+                rideSearchRequestDTO.getPassengerDestinationLong(),
+                radius
+        );
+        return totalRides.stream()
+                .map(this::mapToAvailableRideDTO)
+                .toList();
     }
 //    request a ride from passenger end
     @Override @Transactional
@@ -88,23 +82,22 @@ public class PassengerServiceImplementation implements PassengerService{
                     " Please wait till driver accept your ride.");
         RideEntity ride = this.rideEntityRepository.findByRideCode(passengerRideRequest.getRideCode())
                 .orElseThrow(() -> new ResourceNotFoundException("Ride not found."));
-        if(ride.getDriverProfileEntity()
-                .getUser()
-                .getUserId()
-                .equals(passenger.getUserId()))
-            throw new RuntimeException("Driver cannot request their own ride.");
-        if(ride.getRideStatus().equals(RideStatus.CANCELLED) || ride.isRideDeleted())
-            throw new RuntimeException("Ride is cancelled.");
-        if(ride.getAvailableSeats() < passengerRideRequest.getRequiredSeats())
-            throw new RuntimeException("Seats are full.");
-        if(ride.getDepartureTime().isBefore(LocalDateTime.now()))
-            throw new RuntimeException("Ride is expired.");
+        if(ride.isRideDeleted())
+            throw new InvalidRideStateException("Ride is cancelled.");
         if(ride.getRideStatus() != RideStatus.ACTIVE)
-            throw new RuntimeException("Rider not accepting requests");
+            throw new InvalidRideStateException("Ride is not accepting requests.");
+        if(ride.getDepartureTime().isBefore(LocalDateTime.now()))
+            throw new IllegalStateException("Ride has already expired.");
+        if(ride.getDriverProfileEntity().getUser().getUserId().equals(passenger.getUserId()))
+            throw new AccessDeniedException("Driver cannot request their own ride.");
+        if(passengerRideRequest.getRequiredSeats() <= 0)
+            throw new IllegalArgumentException("Requested seats must be greater than zero.");
+        if(ride.getAvailableSeats() < passengerRideRequest.getRequiredSeats())
+            throw new IllegalStateException("Not enough seats available.");
         PassengerRideRequestEntity rideRequestEntity = PassengerRideRequestEntity
                 .builder()
-                .rideCode(ride.getRideCode())
                 .ride(ride)
+                .rideCode(passengerRideRequest.getRideCode())
                 .passenger(passenger)
                 .requestedSeats(passengerRideRequest.getRequiredSeats())
                 .sourceLat(passengerRideRequest.getSourceLat())
@@ -119,14 +112,13 @@ public class PassengerServiceImplementation implements PassengerService{
         rideRequestEntity = this.passengerRideRequestRepository.save(rideRequestEntity);
         return PassengerRideRequestResponse.builder()
                 .requestId(rideRequestEntity.getRequestId())
-                .rideCode(rideRequestEntity.getRideCode())
                 .passengerName(passenger.getUserFullName())
                 .driverName(ride.getDriverProfileEntity().getUser().getUserFullName())
                 .requestStatus(rideRequestEntity.getRideRequestStatus().toString())
                 .requestedSeats(passengerRideRequest.getRequiredSeats())
                 .requestCreatedAt(rideRequestEntity.getRideRequestedAt())
-                .sourceAddress(ride.getSourceAddress())
-                .destinationAddress(ride.getDestinationAddress())
+                .sourceAddress(passengerRideRequest.getSourceAddress())
+                .destinationAddress(passengerRideRequest.getDestinationAddress())
                 .departureTime(ride.getDepartureTime())
                 .build();
     }
@@ -146,14 +138,16 @@ public class PassengerServiceImplementation implements PassengerService{
             throw new AccessDeniedException("You are not requested this ride.");
         return this.passengerRideRequestRepository.getDecisionResponse(requestId,rideCode);
     }
-
+//    fetch the accepted ride request status
     @Override
-    public List<MyRideRequests> getMyRideRequestStatus(String email, LocalDate date) {
+    public MyRideRequests getMyRideRequestStatus(String email, Long requestId) {
         UserEntity passenger = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
         validatePassengerAccount(passenger);
-        return this.passengerRideRequestRepository
-                .getMyRidesRequestStatus(passenger.getUserId(), date);
+        PassengerRideRequestEntity passengerRideRequest = this
+                .passengerRideRequestRepository.findByPassengerAndRequestId(passenger, requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Passenger Request not found."));
+        return this.passengerRideRequestRepository.ridesRequestedByDriver(passengerRideRequest.getRequestId(), RideRequestStatus.ACCEPTED);
     }
 //    needed to completed
 //    rate driver

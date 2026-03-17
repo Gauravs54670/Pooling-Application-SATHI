@@ -25,7 +25,6 @@ public class AvailableRidesDTO {
     private String vehicleCategory;
     private String vehicleClass;
     private String rideStatus;
-
     public AvailableRidesDTO(
             String rideCode,
             String driverName,
