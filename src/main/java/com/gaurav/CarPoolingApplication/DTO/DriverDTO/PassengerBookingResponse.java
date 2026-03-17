@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @Builder
 public class BookingResponse {
     private Long requestId;
-    private String rideCode;
     private String passengerName;
     private Integer requestedSeats;
     private Double passengerSourceLong;
@@ -19,12 +18,11 @@ public class BookingResponse {
     private Double passengerDestinationLat;
     private Double passengerDestinationLong;
     private String passengerDestinationAddress;
-    private Double distanceFromDriver;
+    private Double distanceFromRideSource;
     private String rideRequestStatus;
     private LocalDateTime requestCreatedAt;
     public BookingResponse(
             Long requestId,
-            String rideCode,
             String passengerName,
             Integer requestedSeats,
             Double passengerSourceLong,
@@ -36,7 +34,6 @@ public class BookingResponse {
             RideRequestStatus rideRequestStatus,
             LocalDateTime requestCreatedAt) {
         this.requestId = requestId;
-        this.rideCode = rideCode;
         this.passengerName = passengerName;
         this.requestedSeats = requestedSeats;
         this.passengerSourceLong = passengerSourceLong;
