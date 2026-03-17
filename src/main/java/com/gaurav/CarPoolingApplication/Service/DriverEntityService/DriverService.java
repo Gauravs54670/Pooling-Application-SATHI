@@ -24,7 +24,6 @@ public interface DriverService {
             String email,
             String rideCode);
     RideResponse postRide(String email, RidePostingRequest request);
-    RideResponse postingRideInRoute(String email, RidePostingRequest request, String rideCode);
     DriverRideRequestDecisionResponse rideSharingDecision(
             String email,
             String rideRequestDecision,

@@ -190,6 +190,8 @@ public class DriverServiceImplementation implements DriverService{
             throw new IllegalStateException("Driver must be ONLINE to post ride.");
         if(request.getDepartureTime().isBefore(LocalDateTime.now()))
             throw new IllegalArgumentException("Please recheck the departure time. Departure time is in past.");
+        if(request.getAvailableSeats() <= 0)
+            throw new IllegalArgumentException("Available seats must be greater than zero.");
         if(request.getAvailableSeats() > driverProfile.getVehicleSeatCapacity())
             throw new IllegalArgumentException("Requested seats exceed vehicle capacity.");
         double distance = calculateDistance(
@@ -246,74 +248,6 @@ public class DriverServiceImplementation implements DriverService{
                 .rideCreatedAt(ride.getRideCreatedAt())
                 .build();
     }
-//    posting ride by driver in the route
-//    (after one passenger reached his destination one seat become empty)
-    @Override
-    public RideResponse postingRideInRoute(String email, RidePostingRequest request, String rideCode) {
-        UserEntity driver = this.userEntityRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found."));
-        validateUserAccount(driver);
-        DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("Driver profile not found."));
-        double estimatedTotalDistance = calculateDistance(
-                request.getSourceLat(),
-                request.getSourceLong(),
-                request.getDestinationLat(),
-                request.getDestinationLong());
-        BigDecimal pricePerKm = calculatePricePerKm(
-                driverProfile.getVehicleCategory(),driverProfile.getVehicleClass());
-        BigDecimal totalFare = pricePerKm
-                .multiply(BigDecimal.valueOf(estimatedTotalDistance))
-                .setScale(2, RoundingMode.HALF_UP);
-        RideEntity ride = this.rideEntityRepository
-                .findByDriverProfileEntity_DriverIdAndRideCode(driverProfile.getDriverId(), rideCode)
-                .orElseGet(() -> RideEntity.builder()
-                        .driverProfileEntity(driverProfile)
-                        .sourceLat(request.getSourceLat())
-                        .sourceLong(request.getSourceLong())
-                        .sourceAddress(request.getSourceAddress())
-                        .destinationLat(request.getDestinationLat())
-                        .destinationLong(request.getDestinationLong())
-                        .destinationAddress(request.getDestinationAddress())
-                        .vehicleClass(driverProfile.getVehicleClass())
-                        .vehicleCategory(driverProfile.getVehicleCategory())
-                        .estimatedTotalDistance(BigDecimal.valueOf(estimatedTotalDistance))
-                        .estimatedTotalFare(totalFare)
-                        .actualTotalDistance(null)
-                        .actualTotalFare(null)
-                        .actualRoutePath(null)
-                        .totalSeats(driverProfile.getVehicleSeatCapacity())
-                        .availableSeats(request.getAvailableSeats())
-                        .rideStatus(RideStatus.ACTIVE)
-                        .departureTime(LocalDateTime.now())
-                        .arrivalTime(null)
-                        .rideCreatedAt(LocalDateTime.now())
-                        .rideUpdatedAt(LocalDateTime.now())
-                        .rideCompletedAt(null)
-                        .rideCode(generateRideCode())
-                        .actualRoutePath(null)
-                        .build());
-        this.rideEntityRepository.save(ride);
-        return RideResponse.builder()
-                .rideCode(rideCode)
-                .sourceLat(ride.getSourceLat())
-                .sourceLong(ride.getSourceLong())
-                .sourceAddress(ride.getSourceAddress())
-                .destinationLat(ride.getDestinationLat())
-                .destinationLong(ride.getDestinationLong())
-                .destinationAddress(ride.getDestinationAddress())
-                .departureTime(ride.getDepartureTime())
-                .totalSeats(ride.getTotalSeats())
-                .availableSeats(ride.getAvailableSeats())
-                .estimatedTotalDistance(ride.getEstimatedTotalDistance())
-                .actualTotalDistance(null)
-                .pricePerKm(ride.getPricePerKm())
-                .estimatedTotalFare(ride.getEstimatedTotalFare())
-                .actualTotalFare(null)
-                .rideCreatedAt(ride.getRideCreatedAt())
-                .build();
-    }
-
     //    change the availability status
     @Override
     public String changeAvailabilityStatus(String email, String availabilityStatus) {
