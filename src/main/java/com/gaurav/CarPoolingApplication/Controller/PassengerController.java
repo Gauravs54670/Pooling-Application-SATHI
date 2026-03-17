@@ -60,13 +60,13 @@ public class PassengerController {
         ),HttpStatus.OK);
     }
 //    get my requested ride status
-    @GetMapping("/my-rideRequests")
+    @GetMapping("/my-rideRequests/{requestId}")
     public ResponseEntity<?> myRequestedRides(
             Authentication authentication,
-            @RequestParam(required = false)LocalDate date) {
+            @PathVariable("requestId") Long requestId) {
         String email = authentication.getName();
-        List<MyRideRequests> myRideRequests =
-                this.passengerService.getMyRideRequestStatus(email, , date);
+        MyRideRequests myRideRequests =
+                this.passengerService.getMyRideRequestStatus(email, requestId);
         return new ResponseEntity<>(Map.of(
                 "message", "Requests Fetched",
                 "response", myRideRequests
