@@ -119,4 +119,22 @@ PRIORITY ORDER FOR IMPLEMENTATION
 6. UserService          -> polish (notifications, role switch, avatar)
 ================================================================
 
-let suppose there is a traffic in a ride so by taking consent of both driver and passenger vehicle can be turned off which can reduce cost
+let suppose there is traffic in a ride so by taking consent of both driver and passenger vehicle can be turned off which can reduce cost
+1. cancelRide()            — simplest, just status updates
+2. passengerExitRide()     — complex, fare calculation + diversion
+3. getDriverRideHistory()  — simple query, already have DTO
+4. getPassengerRideHistory() — simple query, already have DTO
+1. passengerExitRide()     — passenger exits at their own stop
+                           — handles normal exit + diversion scenario
+                           — calculates passenger's own fare based on
+                             their actual travel distance
+
+2. cancelRide()            — driver cancels their posted ride
+                           — must notify all PENDING/ACCEPTED passengers
+                           — must restore nothing (ride just marked cancelled)
+
+3. getPassengerRideHistory() — already designed, just needs implementation
+                              — filter by RideRequestStatus.COMPLETED
+
+4. getDriverRideHistory()    — already designed, just needs implementation
+                              — filter by RideStatus.COMPLETED

@@ -89,16 +89,16 @@ public class DriverController {
         ),HttpStatus.OK);
     }
 //    cancel rides
-    @PutMapping("/cancel-ride")
-    public ResponseEntity<?> cancelRide(
-            Authentication authentication,
-            @RequestParam("rideCode") String rideCode) {
-        String email = authentication.getName();
-        String message = this.driverService.cancelRide(email, rideCode);
-        return new ResponseEntity<>(Map.of(
-                "message", message
-        ),HttpStatus.OK);
-    }
+//    @PutMapping("/cancel-ride")
+//    public ResponseEntity<?> cancelRide(
+//            Authentication authentication,
+//            @RequestParam("rideCode") String rideCode) {
+//        String email = authentication.getName();
+//        String message = this.driverService.cancelRide(email, rideCode);
+//        return new ResponseEntity<>(Map.of(
+//                "message", message
+//        ),HttpStatus.OK);
+//    }
 //    fetch the requested shared rides
     @GetMapping("/requested-rides")
     public ResponseEntity<?> getRequestedRides(

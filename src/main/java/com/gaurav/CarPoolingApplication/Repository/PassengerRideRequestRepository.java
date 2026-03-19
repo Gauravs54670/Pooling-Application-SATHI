@@ -9,6 +9,7 @@ import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideEntity;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -112,4 +113,14 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
                 @Param("userId") Long userId,
                 @Param("rideStatus") RideRequestStatus rideStatus);
     Optional<PassengerRideRequestEntity> findByPassengerAndRequestId(UserEntity passenger, Long requestId);
+//    check if there is a passenger exist into a driver's vehicle before cancelling the ride
+    boolean existsByRideAndRideRequestStatus(RideEntity ride, RideRequestStatus rideRequestStatus);
+//    cancel all the pending requests of ride-sharing
+    @Modifying
+    @Query("""
+            UPDATE PassengereRequestEntity p
+            SET p.rideRequestStatus = 'CANCELLED'
+            WHERE p.ride.rideId = :rideId AND p.rideRequestStatus = 'PENDING'
+            """)
+    void cancelAllPendingRideSharingRequests(@Param("rideId") Long rideId);
 }

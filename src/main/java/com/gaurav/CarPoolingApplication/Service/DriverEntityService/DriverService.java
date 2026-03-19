@@ -32,5 +32,5 @@ public interface DriverService {
             String email,
             String rideCode,
             GPSTrackingRequest gpsTrackingRequest);
-    String cancelRide(String credential, String rideCode);
+    String cancelRide(String email, String rideCode);
 }

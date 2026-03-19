@@ -507,25 +507,34 @@ public class DriverServiceImplementation implements DriverService{
             gpsBuffer.get(rideCode).clear();
         }
     }
-//    cancel posted ride request
-    @Override
-    public String cancelRide(String credential, String rideCode) {
-        UserEntity user = this.userEntityRepository.findByEmail(credential)
+//    cancel the posted ride by driver
+    @Override @Transactional
+    public String cancelRide(String email, String rideCode) {
+        UserEntity driver = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
-        validateUserAccount(user);
-        DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(credential)
+        validateUserAccount(driver);
+        DriverProfileEntity driverProfile = this.driverEntityRepository
+                .findByUserEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
-        RideEntity rideEntity = this.rideEntityRepository
+        RideEntity ride = this.rideEntityRepository
                 .findByDriverProfileEntity_DriverIdAndRideCode(driverProfile.getDriverId(), rideCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Ride not found."));
-        if (!rideEntity.getRideStatus().equals(RideStatus.ACTIVE))
-            throw new InvalidRideStateException(
-                    "Only scheduled rides can be cancelled."
-            );
-        rideEntity.setRideStatus(RideStatus.CANCELLED);
-        rideEntity.setRideDeleted(true);
-        this.rideEntityRepository.save(rideEntity);
-        return "Ride entity with ride code " + rideCode +" is cancelled.";
+                .orElseThrow(() -> new ResourceNotFoundException("Invalid ride. " +
+                        "You are not the owner of this ride."));
+        if(ride.getRideStatus() == RideStatus.COMPLETED || ride.getRideStatus() == RideStatus.CANCELLED)
+            throw new InvalidRideStateException("This ride is completed or already cancelled.");
+        boolean hasAcceptedPassengers = this.passengerRideRequestRepository
+                        .existsByRideAndRideRequestStatus(ride, RideRequestStatus.ACCEPTED);
+        if(hasAcceptedPassengers)
+            throw new InvalidRideStateException("Cannot cancel ride. " +
+                    "Please drop the passenger's to nearby stop before cancelling ride.");
+        this.passengerRideRequestRepository
+                        .cancelAllPendingRideSharingRequests(ride.getRideId());
+        ride.setRideStatus(RideStatus.CANCELLED);
+        ride.setRideDeleted(true);
+        ride.setRideUpdatedAt(LocalDateTime.now());
+        this.rideEntityRepository.save(ride);
+        return "Your ride is cancelled successfully. " +
+                "And we wish you luck to you and your family in case any emergency occurs.";
     }
     //    helper methods
 //    generate OTP
