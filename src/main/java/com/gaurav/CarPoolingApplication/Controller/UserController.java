@@ -53,15 +53,6 @@ public class UserController {
                 "response", profileDTO
         ),HttpStatus.OK);
     }
-//    update or change the user's account password
-    @PutMapping("/change-password")
-    public ResponseEntity<?> updatePassword(
-            @RequestBody ChangePasswordRequestDTO request,
-            Authentication authentication) {
-        String credential = authentication.getName();
-        String message = this.userService.changePassword(credential, request);
-        return new ResponseEntity<>(Map.of("message", message),HttpStatus.OK);
-     }
 //     get user's role
     @GetMapping("/get-roles")
     public ResponseEntity<?> getRoles(Authentication authentication) {
@@ -100,7 +91,7 @@ public class UserController {
         String credential = authentication.getName();
         ObjectMapper mapper = new ObjectMapper();
         DriverProfileRequest request = mapper.readValue(driverProfileRequest,DriverProfileRequest.class);
-        DriverProfileResponse driverProfileResponse = this.userService.registerDriver(
+        DriverProfileResponse driverProfileResponse = this.driverService.registerDriver(
                 credential,
                 multipartFile,
                 request

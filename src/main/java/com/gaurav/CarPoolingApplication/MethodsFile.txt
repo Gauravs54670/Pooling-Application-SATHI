@@ -13,3 +13,5 @@ PaymentService
 3. cancelRideRequest()    — passenger side missing
 4. PaymentService         — monetization
 5. RatingService          — separate from PassengerService
+
+logout user by redis

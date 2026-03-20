@@ -2,6 +2,7 @@ package com.gaurav.CarPoolingApplication.Controller;
 
 import com.gaurav.CarPoolingApplication.DTO.UserDTO.UserRegistrationRequest;
 import com.gaurav.CarPoolingApplication.DTO.UserDTO.UserRegistrationResponse;
+import com.gaurav.CarPoolingApplication.Service.UserEntityService.AuthService;
 import com.gaurav.CarPoolingApplication.Service.UserEntityService.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,9 +12,13 @@ import java.util.Map;
 
 @RestController @RequestMapping("/public")
 public class PublicController {
+    private final AuthService authService;
     private final UserService userService;
-    public PublicController(UserService userService) {
+    public PublicController(
+            AuthService authService,
+            UserService userService) {
         this.userService = userService;
+        this.authService = authService;
     }
     @PostMapping("/register-user")
     public ResponseEntity<?> registerUser(@RequestBody UserRegistrationRequest userRegistrationRequest) {
@@ -24,7 +29,7 @@ public class PublicController {
     }
     @PostMapping("/request-otp")
     public ResponseEntity<?> requestOTP(@RequestParam("email") String email) {
-        String message = this.userService.requestOTP(email);
+        String message = this.authService.requestOTP(email);
         return new ResponseEntity<>(Map.of(
                 "message", message
         ),HttpStatus.OK);
@@ -34,7 +39,7 @@ public class PublicController {
             @RequestParam("email") String email,
             @RequestParam("OTP") String otp,
             @RequestParam("new password") String newPassword) {
-        String message = this.userService.forgotPassword(email, otp, newPassword);
+        String message = this.authService.forgotPassword(email, otp, newPassword);
         return new ResponseEntity<>(Map.of(
                 "message", message
         ),HttpStatus.OK);
