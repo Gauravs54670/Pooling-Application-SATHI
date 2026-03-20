@@ -1,10 +1,8 @@
 package com.gaurav.CarPoolingApplication.Service.PassengerService;
-
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRatingClass;
 import com.gaurav.CarPoolingApplication.DTO.PassengerDTO.*;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideSearchRequestDTO;
-
 import java.util.List;
 
 public interface PassengerService {
@@ -26,4 +24,7 @@ public interface PassengerService {
             String email, Integer rating,
             String comment, String rideCode);
     List<PassengerRideHistoryDTO> getRideHistory(String email);
+//    - cancelRideRequest()     — passenger cancels their own PENDING request
+//    - getActiveRide()         — get currently active ride for passenger
+//    - rateDriver()            — already present
 }

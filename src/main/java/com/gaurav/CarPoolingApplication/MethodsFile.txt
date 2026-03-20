@@ -1,140 +1,15 @@
-================================================================
-        CAR POOLING APPLICATION - SERVICE LAYER SUGGESTIONS
-================================================================
+Notification Service
+- notifyPassenger()       — driver accepted/rejected request
+- notifyDriver()          — new ride request received
+- notifyRideCancelled()   — ride cancelled by driver
 
-----------------------------------------------------------------
-1. PassengerService  (additions)
-----------------------------------------------------------------
-List<RideHistoryDTO>    getRideHistory(String email, Pageable pageable);
-RideDetailsDTO          getRideDetails(String email, String rideCode);
-String                  cancelRideRequest(String email, Long requestId, String reason);
-RideTrackingDTO         trackRide(String email, String rideCode);
-String                  reportIssue(String email, String rideCode, ReportRequest request);
-FareSplitSummaryDTO     getSplitFareSummary(String email, String rideCode);
+PaymentService
+- initiatePayment()       — passenger pays fare
+- processRefund()         — cancelled ride refund
+- getPaymentHistory()     — transaction records
 
-
-----------------------------------------------------------------
-2. DriverService  (entirely new - HIGHEST PRIORITY)
-----------------------------------------------------------------
-public interface DriverService {
-
-    String                          goOnline(String credential);
-    String                          goOffline(String credential);
-
-    CreateRideResponse              createRide(String credential, CreateRideRequest request);
-    String                          startRide(String credential, String rideCode);
-    String                          completeRide(String credential, String rideCode);
-    String                          cancelRide(String credential, String rideCode, String reason);
-
-    List<PassengerRideRequestDTO>   getMyRideRequests(String credential, String rideCode);
-    String                          acceptPassenger(String credential, Long requestId);
-    String                          rejectPassenger(String credential, Long requestId, String reason);
-
-    List<RideHistoryDTO>            getRideHistory(String credential, Pageable pageable);
-    EarningsSummaryDTO              getEarningsSummary(String credential, LocalDate from, LocalDate to);
-
-    PassengerRatingResponse         ratePassenger(
-                                        String credential,
-                                        String rideCode,
-                                        Long passengerId,
-                                        Integer rating,
-                                        String comment);
-}
-
-
-----------------------------------------------------------------
-3. AdminService  (additions)
-----------------------------------------------------------------
-String                      suspendUser(String adminEmail, String targetEmail, String reason);
-String                      reactivateUser(String adminEmail, String targetEmail);
-String                      banUser(String adminEmail, String targetEmail, String reason);
-
-List<RideDTO>               getAllRides(String adminEmail, Pageable pageable);
-RideDetailsDTO              getRideDetails(String adminEmail, String rideCode);
-
-String                      resolveReport(String adminEmail, Long reportId, String resolution);
-List<ReportDTO>             getAllPendingReports(String adminEmail);
-
-List<DriverProfileResponse> getVerifiedDrivers(String adminEmail);
-List<DriverProfileResponse> getRejectedDrivers(String adminEmail);
-
-PlatformStatsDTO            getPlatformStats(String adminEmail);
-// PlatformStatsDTO should include:
-// - totalRides, activeUsers, totalRevenue
-// - totalCO2Saved (environment impact metric)
-// - ridesThisMonth, newUsersThisMonth
-
-
-----------------------------------------------------------------
-4. UserService  (additions)
-----------------------------------------------------------------
-String              switchRole(String credential, UserRole targetRole);
-String              uploadProfilePicture(String credential, MultipartFile file);
-List<NotificationDTO> getNotifications(String credential);
-String              markNotificationRead(String credential, Long notificationId);
-
-
-----------------------------------------------------------------
-5. PaymentService  (entirely new)
-----------------------------------------------------------------
-public interface PaymentService {
-
-    PaymentInitiationResponse   initiateFarePayment(String email, String rideCode);
-    PaymentStatusDTO            getPaymentStatus(String email, String rideCode);
-    List<PaymentHistoryDTO>     getPaymentHistory(String email, Pageable pageable);
-
-    // Core fare-split algorithm:
-    // base fare divided by number of passengers
-    // driver keeps a configured % cut (e.g. 60%), rest is split equally
-    FareSplitDTO                calculateFareSplit(String rideCode);
-
-    String                      processRefund(String email, String rideCode, String reason);
-}
-
-
-----------------------------------------------------------------
-6. NotificationService  (entirely new)
-----------------------------------------------------------------
-public interface NotificationService {
-
-    void    sendRideRequestNotification(String driverEmail, Long requestId);
-    void    sendRideAcceptedNotification(String passengerEmail, String rideCode);
-    void    sendRideRejectedNotification(String passengerEmail, String rideCode, String reason);
-    void    sendRideStartedNotification(List<String> passengerEmails, String rideCode);
-    void    sendRideCompletedNotification(List<String> passengerEmails, String rideCode);
-    void    sendRideCancelledNotification(List<String> affectedEmails, String rideCode, String reason);
-    void    sendOTPNotification(String email, String otp);
-    void    sendDriverVerificationUpdate(String driverEmail, boolean approved);
-}
-
-
-================================================================
-PRIORITY ORDER FOR IMPLEMENTATION
-================================================================
-1. DriverService        -> core app flow is broken without it
-2. PaymentService       -> central to fare-split value proposition
-3. PassengerService     -> fill lifecycle gaps (cancel, history, track)
-4. NotificationService  -> rides are time-sensitive, alerts are critical
-5. AdminService         -> expand monitoring and moderation
-6. UserService          -> polish (notifications, role switch, avatar)
-================================================================
-
-let suppose there is traffic in a ride so by taking consent of both driver and passenger vehicle can be turned off which can reduce cost
-1. cancelRide()            — simplest, just status updates
-2. passengerExitRide()     — complex, fare calculation + diversion
-3. getDriverRideHistory()  — simple query, already have DTO
-4. getPassengerRideHistory() — simple query, already have DTO
-1. passengerExitRide()     — passenger exits at their own stop
-                           — handles normal exit + diversion scenario
-                           — calculates passenger's own fare based on
-                             their actual travel distance
-
-2. cancelRide()            — driver cancels their posted ride
-                           — must notify all PENDING/ACCEPTED passengers
-                           — must restore nothing (ride just marked cancelled)
-
-3. getPassengerRideHistory() — already designed, just needs implementation
-                              — filter by RideRequestStatus.COMPLETED
-
-4. getDriverRideHistory()    — already designed, just needs implementation
-                              — filter by RideStatus.COMPLETED
+1. AdminService           — needed for driver approval to even work
+2. NotificationService    — core UX, passengers need to know decisions
+3. cancelRideRequest()    — passenger side missing
+4. PaymentService         — monetization
+5. RatingService          — separate from PassengerService

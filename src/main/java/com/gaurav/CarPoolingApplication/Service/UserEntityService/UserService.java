@@ -22,4 +22,7 @@ public interface UserService {
             String credential,
             MultipartFile file,
             DriverProfileRequest driverProfileRequest);
+//      - refreshToken()          — JWT refresh token support
+//      - uploadProfilePhoto()    — profile picture management
+//      - verifyPhoneNumber()     — OTP via SMS for phone verification
 }
