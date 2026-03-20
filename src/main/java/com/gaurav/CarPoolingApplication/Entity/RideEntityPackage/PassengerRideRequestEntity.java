@@ -4,6 +4,7 @@ import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 @AllArgsConstructor @NoArgsConstructor
 @Builder @Getter @Setter
@@ -29,4 +30,8 @@ public class PassengerRideRequestEntity {
     private LocalDateTime rideRequestedAt;
     private LocalDateTime decisionTime;
     private String rideOTP;
+    private BigDecimal passengerActualDistance;
+    private BigDecimal passengerActualFare;
+    private LocalDateTime rideBoardingAt;
+    private LocalDateTime rideExitedAt;
 }

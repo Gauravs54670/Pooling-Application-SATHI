@@ -21,6 +21,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -149,7 +151,58 @@ public class PassengerServiceImplementation implements PassengerService{
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger Request not found."));
         return this.passengerRideRequestRepository.ridesRequestedByDriver(passengerRideRequest.getRequestId(), RideRequestStatus.ACCEPTED);
     }
-//    needed to completed
+//    exit ride by passenger
+    @Override @Transactional
+    public PassengerExitRideResponseDTO existRide(
+            String email,
+            PassengerRideExistRequestDTO passengerRideExistRequestDTO) {
+        UserEntity passenger = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validatePassengerAccount(passenger);
+        PassengerRideRequestEntity passengerRideRequest = this.passengerRideRequestRepository
+                .findByPassengerAndRequestId(passenger, passengerRideExistRequestDTO.getRideRequestId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ride request not found. " +
+                        "Please check the request Id or ride code."));
+        if(passengerRideRequest.getRideRequestStatus() == RideRequestStatus.COMPLETED)
+            throw new InvalidRideStateException("Ride sharing is already completed.");
+        if(passengerRideRequest.getRideRequestStatus() != RideRequestStatus.ACCEPTED)
+            throw new InvalidRideStateException("Only ACCEPTED passengers can exit a ride.");
+        RideEntity ride = passengerRideRequest.getRide();
+        if(ride.getRideStatus() != RideStatus.STARTED)
+            throw new InvalidRideStateException("Can only exit a ride which is running");
+        double distanceTravelledByPassenger = calculateDistance(
+                passengerRideRequest.getSourceLat(),
+                passengerRideRequest.getSourceLong(),
+                passengerRideExistRequestDTO.getActualDestinationLat(),
+                passengerRideExistRequestDTO.getActualDestinationLong()
+        );
+        if(distanceTravelledByPassenger == 0)
+            throw new IllegalStateException("Cannot exit at boarding location.");
+        BigDecimal passengerRideSharingFare = ride.getPricePerKm()
+                .multiply(BigDecimal.valueOf(distanceTravelledByPassenger))
+                .setScale(2, RoundingMode.HALF_UP);
+        passengerRideRequest.setPassengerActualDistance(
+                BigDecimal.valueOf(distanceTravelledByPassenger)
+                        .setScale(2, RoundingMode.HALF_UP));
+        passengerRideRequest.setPassengerActualFare(passengerRideSharingFare);
+        passengerRideRequest.setRideRequestStatus(RideRequestStatus.COMPLETED);
+        passengerRideRequest.setRideExitedAt(LocalDateTime.now());
+        ride.setAvailableSeats(ride.getAvailableSeats() + passengerRideRequest.getRequestedSeats());
+//        payment here
+        this.passengerRideRequestRepository.save(passengerRideRequest);
+        this.rideEntityRepository.save(ride);
+        return PassengerExitRideResponseDTO.builder()
+                .requestId(passengerRideRequest.getRequestId())
+                .rideCode(ride.getRideCode())
+                .boardingAddress(passengerRideRequest.getSourceAddress())
+                .exitAddress(passengerRideExistRequestDTO.getActualDestinationAddress())
+                .pricePerKm(ride.getPricePerKm())
+                .actualDistance(passengerRideRequest.getPassengerActualDistance())
+                .actualFare(passengerRideRequest.getPassengerActualFare())
+                .seatsReleased(passengerRideRequest.getRequestedSeats())
+                .exitedAt(passengerRideRequest.getRideExitedAt())
+                .build();
+    }
 //    rate driver
     @Override @Transactional
     public DriverRatingClass rateDriver(
@@ -212,26 +265,13 @@ public class PassengerServiceImplementation implements PassengerService{
     }
 //    get the history of the rides
     @Override
-    public List<PassengerRideHistoryDTO> getRideHistory(String email, String rideStatus) {
+    public List<PassengerRideHistoryDTO> getRideHistory(String email) {
         UserEntity passenger = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
         validatePassengerAccount(passenger);
-        if(rideStatus == null || rideStatus.isEmpty())
-            throw new IllegalArgumentException("Ride status can't be empty or blank");
-        RideRequestStatus status;
-        try {
-            status = RideRequestStatus.valueOf(rideStatus.trim().toUpperCase());
-        }
-        catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException(ex.getMessage() +
-                    " Allowed values are " +
-                    "COMPLETED,\n" +
-                    "CANCELLED,");
-        }
         return this
                 .passengerRideRequestRepository
-                .getPassengerRideHistory(passenger.getUserId()
-                        , status == RideRequestStatus.COMPLETED ? RideRequestStatus.COMPLETED : RideRequestStatus.CANCELLED);
+                .getPassengerRideHistory(passenger.getUserId());
     }
 
     //    helper methods

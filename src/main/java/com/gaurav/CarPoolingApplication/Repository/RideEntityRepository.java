@@ -1,6 +1,7 @@
 package com.gaurav.CarPoolingApplication.Repository;
 
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.DriverRidesHistoryDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverProfileEntity;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideEntity;
@@ -84,4 +85,23 @@ public interface RideEntityRepository extends JpaRepository<RideEntity, Long> {
             @Param("destinationLat") double destinationLat,
             @Param("destinationLong") double destinationLong,
             @Param("radius") double radius);
+    @Query("""
+            SELECT new com.gaurav.CarPoolingApplication.DTO.RideDTO.DriverRidesHistoryDTO(
+                r.rideCode,
+                r.sourceAddress,
+                r.destinationAddress,
+                r.estimatedTotalDistance,
+                r.actualTotalDistance,
+                r.estimatedTotalFare,
+                r.actualTotalFare,
+                r.rideStatus,
+                r.departureTime,
+                r.rideCompletedAt
+            )
+            FROM RideEntity r
+            WHERE r.driverProfileEntity.driverId = :driverId
+            AND (r.rideStatus = com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideStatus.COMPLETED
+            OR r.rideStatus = com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideStatus.CANCELLED)
+            """)
+    List<DriverRidesHistoryDTO> getDriverRidesHistory(@Param("driverId") Long driverId);
 }

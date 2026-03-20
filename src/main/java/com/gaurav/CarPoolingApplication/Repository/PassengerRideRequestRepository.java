@@ -14,7 +14,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,7 +21,7 @@ import java.util.Optional;
 public interface PassengerRideRequestRepository extends JpaRepository<PassengerRideRequestEntity, Long> {
     Optional<PassengerRideRequestEntity> findByPassengerAndRideCode(UserEntity passenger, String rideCode);
     @Query("""
-            SELECT new com.gaurav.CarPoolingApplication.DTO.DriverDTO.BookingResponse(
+            SELECT new com.gaurav.CarPoolingApplication.DTO.DriverDTO.PassengerBookingResponse(
                 r.requestId,
                 r.passenger.userFullName,
                 r.requestedSeats,
@@ -89,11 +88,11 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
         @Query("""
                 SELECT new com.gaurav.CarPoolingApplication.DTO.PassengerDTO.PassengerRideHistoryDTO(
                     r.requestId,
-                    r.rideCode,
+                    r.rideRequestStatus,
                     r.sourceAddress,
                     r.destinationAddress,
-                    r.ride.actualTotalFare,
-                    r.ride.actualTotalDistance,
+                    r.passengerActualFare,
+                    r.passengerActualDistance,
                     r.requestedSeats,
                     r.ride.vehicleClass,
                     r.ride.vehicleCategory,
@@ -103,22 +102,24 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
                     r.ride.rideCompletedAt,
                     r.ride.driverProfileEntity.user.userFullName,
                     r.ride.driverProfileEntity.driverProfileUrl,
-                    r.ride.driverProfileEntity.averageRatingOfDriver
+                    r.ride.driverProfileEntity.averageRatingOfDriver,
+                    r.rideBoardingAt,
+                    r.rideExitedAt
                 )
                 FROM PassengerRideRequestEntity r
                 WHERE r.passenger.userId = :userId
-                AND r.ride.rideStatus = :rideStatus
+                AND (r.rideRequestStatus = com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus.REJECTED
+                OR r.rideRequestStatus = com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus.CANCELLED
+                OR r.rideRequestStatus = com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus.COMPLETED)
                 """)
-        List<PassengerRideHistoryDTO> getPassengerRideHistory(
-                @Param("userId") Long userId,
-                @Param("rideStatus") RideRequestStatus rideStatus);
+        List<PassengerRideHistoryDTO> getPassengerRideHistory(@Param("userId") Long userId);
     Optional<PassengerRideRequestEntity> findByPassengerAndRequestId(UserEntity passenger, Long requestId);
 //    check if there is a passenger exist into a driver's vehicle before cancelling the ride
     boolean existsByRideAndRideRequestStatus(RideEntity ride, RideRequestStatus rideRequestStatus);
 //    cancel all the pending requests of ride-sharing
     @Modifying
     @Query("""
-            UPDATE PassengereRequestEntity p
+            UPDATE PassengerRideRequestEntity p
             SET p.rideRequestStatus = 'CANCELLED'
             WHERE p.ride.rideId = :rideId AND p.rideRequestStatus = 'PENDING'
             """)

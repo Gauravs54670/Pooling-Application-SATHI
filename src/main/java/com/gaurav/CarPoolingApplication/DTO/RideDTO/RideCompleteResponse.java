@@ -17,6 +17,4 @@ public class RideCompleteResponse {
     private BigDecimal actualTotalDistance;
     private BigDecimal estimatedTotalFare;
     private BigDecimal actualTotalFare;
-    private Integer totalSeats;
-    private Integer availableSeats;
 }

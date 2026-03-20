@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -94,10 +93,23 @@ public class PassengerController {
             @RequestParam("rideStatus") String rideStatus){
         String email = authentication.getName();
         List<PassengerRideHistoryDTO> passengerRideHistories = this
-                .passengerService.getRideHistory(email, rideStatus);
+                .passengerService.getRideHistory(email);
         return new ResponseEntity<>(Map.of(
                 "message", "Ride History",
                 "response", passengerRideHistories
+        ),HttpStatus.OK);
+    }
+//    to exit from a ride
+    @PutMapping("/exit-ride")
+    public ResponseEntity<?> exitRide(
+            Authentication authentication,
+            @RequestBody PassengerRideExistRequestDTO passengerRideExistRequestDTO) {
+        String email = authentication.getName();
+        PassengerExitRideResponseDTO responseDTO = this.passengerService
+                .existRide(email, passengerRideExistRequestDTO);
+        return new ResponseEntity<>(Map.of(
+                "message", "Ride completed successfully",
+                "response", responseDTO
         ),HttpStatus.OK);
     }
 }

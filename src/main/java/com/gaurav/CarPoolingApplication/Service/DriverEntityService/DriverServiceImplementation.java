@@ -4,11 +4,8 @@ import com.cloudinary.Cloudinary;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.PassengerBookingResponse;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileUpdateRequest;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.GPSTrackingRequest;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideCompleteResponse;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RidePostingRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.*;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRideRequestDecisionResponse;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.*;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.*;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserAccountStatus;
@@ -410,7 +407,9 @@ public class DriverServiceImplementation implements DriverService{
             throw new AccessDeniedException("Invalid OTP");
         ride.setRideStatus(RideStatus.STARTED);
         ride.setRideUpdatedAt(LocalDateTime.now());
+        passengerRideRequest.setRideBoardingAt(LocalDateTime.now());
         this.rideEntityRepository.save(ride);
+        this.passengerRideRequestRepository.save(passengerRideRequest);
         return "Ride has started.";
     }
 //    the method will get executed when the ride is completed
@@ -480,8 +479,6 @@ public class DriverServiceImplementation implements DriverService{
                 .actualTotalDistance(ride.getActualTotalDistance())
                 .estimatedTotalFare(ride.getEstimatedTotalFare())
                 .actualTotalFare(ride.getActualTotalFare())
-                .totalSeats(ride.getTotalSeats())
-                .availableSeats(ride.getAvailableSeats())
                 .build();
     }
     @Override
@@ -536,6 +533,17 @@ public class DriverServiceImplementation implements DriverService{
         return "Your ride is cancelled successfully. " +
                 "And we wish you luck to you and your family in case any emergency occurs.";
     }
+//    get driver's ride history
+    @Override
+    public List<DriverRidesHistoryDTO> getDriverRideHistory(String email) {
+        UserEntity user = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateUserAccount(user);
+        DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
+        return this.rideEntityRepository.getDriverRidesHistory(driverProfile.getDriverId());
+    }
+
     //    helper methods
 //    generate OTP
     private String generateOTP() {

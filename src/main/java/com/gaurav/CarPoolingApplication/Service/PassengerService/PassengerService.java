@@ -19,8 +19,11 @@ public interface PassengerService {
             Long requestId,
             String rideCode);
     MyRideRequests getMyRideRequestStatus(String email, Long requestId);
+    PassengerExitRideResponseDTO existRide(
+            String email,
+            PassengerRideExistRequestDTO passengerRideExistRequestDTO);
     DriverRatingClass rateDriver(
             String email, Integer rating,
             String comment, String rideCode);
-    List<PassengerRideHistoryDTO> getRideHistory(String email,String rideStatus);
+    List<PassengerRideHistoryDTO> getRideHistory(String email);
 }

@@ -3,11 +3,8 @@ package com.gaurav.CarPoolingApplication.Service.DriverEntityService;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.PassengerBookingResponse;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileUpdateRequest;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.GPSTrackingRequest;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideCompleteResponse;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RidePostingRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.*;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRideRequestDecisionResponse;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -33,4 +30,5 @@ public interface DriverService {
             String rideCode,
             GPSTrackingRequest gpsTrackingRequest);
     String cancelRide(String email, String rideCode);
+    List<DriverRidesHistoryDTO> getDriverRideHistory(String email);
 }

@@ -2,6 +2,7 @@ package com.gaurav.CarPoolingApplication.DTO.PassengerDTO;
 
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.VehicleCategory;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.VehicleClass;
+import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,7 +11,7 @@ import java.time.LocalDateTime;
 @Getter @Setter
 public class PassengerRideHistoryDTO {
     private Long requestId;
-    private String rideCode;
+    private String rideRequestStatus;
     private String sourceAddress;
     private String destinationAddress;
     private BigDecimal actualTotalFare;
@@ -25,9 +26,11 @@ public class PassengerRideHistoryDTO {
     private String driverFullName;
     private String driverProfileUrl;
     private Double averageRatingOfDriver;
+    private LocalDateTime rideBoardingAt;
+    private LocalDateTime rideExitedAt;
     public PassengerRideHistoryDTO(
             Long requestId,
-            String rideCode,
+            RideRequestStatus rideRequestStatus,
             String sourceAddress,
             String destinationAddress,
             BigDecimal actualTotalFare,
@@ -41,9 +44,11 @@ public class PassengerRideHistoryDTO {
             LocalDateTime rideCompletedAt,
             String driverFullName,
             String driverProfileUrl,
-            Double averageRatingOfDriver) {
+            Double averageRatingOfDriver,
+            LocalDateTime rideBoardingAt,
+            LocalDateTime rideExitedAt) {
         this.requestId = requestId;
-        this.rideCode = rideCode;
+        this.rideRequestStatus = rideRequestStatus.name();
         this.sourceAddress = sourceAddress;
         this.destinationAddress = destinationAddress;
         this.actualTotalFare = actualTotalFare;
@@ -58,5 +63,7 @@ public class PassengerRideHistoryDTO {
         this.driverFullName = driverFullName;
         this.driverProfileUrl = driverProfileUrl;
         this.averageRatingOfDriver = averageRatingOfDriver;
+        this.rideBoardingAt = rideBoardingAt;
+        this.rideExitedAt = rideExitedAt;
     }
 }

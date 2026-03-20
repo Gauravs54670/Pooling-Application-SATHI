@@ -3,11 +3,8 @@ package com.gaurav.CarPoolingApplication.Controller;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.PassengerBookingResponse;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileUpdateRequest;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.GPSTrackingRequest;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideCompleteResponse;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RidePostingRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.*;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverRideRequestDecisionResponse;
-import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
 import com.gaurav.CarPoolingApplication.Service.DriverEntityService.DriverService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -88,17 +85,6 @@ public class DriverController {
                 "response", rideResponses
         ),HttpStatus.OK);
     }
-//    cancel rides
-//    @PutMapping("/cancel-ride")
-//    public ResponseEntity<?> cancelRide(
-//            Authentication authentication,
-//            @RequestParam("rideCode") String rideCode) {
-//        String email = authentication.getName();
-//        String message = this.driverService.cancelRide(email, rideCode);
-//        return new ResponseEntity<>(Map.of(
-//                "message", message
-//        ),HttpStatus.OK);
-//    }
 //    fetch the requested shared rides
     @GetMapping("/requested-rides")
     public ResponseEntity<?> getRequestedRides(
@@ -139,7 +125,6 @@ public class DriverController {
                 "message", message
         ),HttpStatus.OK);
     }
-//    left to tested
     @PostMapping("/ride-completed")
     public ResponseEntity<?> rideCompleted(
             Authentication authentication, String rideCode) {
@@ -159,6 +144,28 @@ public class DriverController {
         this.driverService.trackRideGPSLocation(
                 authentication.getName(), rideCode, request);
         return ResponseEntity.ok().build();
+    }
+//    cancel ride
+    @PutMapping("/cancel-ride")
+    public ResponseEntity<?> cancelRide(
+            Authentication authentication,
+            @RequestParam("rideCode") String rideCode) {
+        String email = authentication.getName();
+        String message = this.driverService.cancelRide(email, rideCode);
+        return new ResponseEntity<>(Map.of(
+                "message", message
+        ),HttpStatus.OK);
+    }
+//    get ride history
+    @GetMapping("/ride-history")
+    public ResponseEntity<?> getRideHistory(Authentication authentication) {
+        String email = authentication.getName();
+        List<DriverRidesHistoryDTO> ridesHistoryDTOS = this.driverService
+                .getDriverRideHistory(email);
+        return new ResponseEntity<>(Map.of(
+                "message", "Ride History",
+                "response", ridesHistoryDTOS
+        ),HttpStatus.OK);
     }
 }
 
