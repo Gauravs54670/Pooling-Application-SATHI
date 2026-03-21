@@ -70,6 +70,7 @@ public class AdminServiceImplementation implements AdminService{
         UserEntity admin = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
         validateAdmin(admin);
+        log.info("Driver Profile fetched");
         return this.driverEntityRepository.getDriverProfile(driverId);
     }
 

@@ -127,7 +127,8 @@ public class DriverController {
     }
     @PostMapping("/ride-completed")
     public ResponseEntity<?> rideCompleted(
-            Authentication authentication, String rideCode) {
+            Authentication authentication,
+            @RequestParam("rideCode") String rideCode) {
         String email = authentication.getName();
         RideCompleteResponse rideCompleteResponse = this.driverService.completeRide(email, rideCode);
         return new ResponseEntity<>(Map.of(

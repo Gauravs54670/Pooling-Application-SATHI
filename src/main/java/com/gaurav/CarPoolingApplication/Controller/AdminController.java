@@ -3,6 +3,7 @@ package com.gaurav.CarPoolingApplication.Controller;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.AdminDriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverVerificationRequest;
 import com.gaurav.CarPoolingApplication.Service.UserEntityService.AdminService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-
+@Slf4j
 @RestController @RequestMapping("/admin")
 public class AdminController {
 
@@ -44,8 +45,10 @@ public class AdminController {
                 Authentication authentication,
                 @PathVariable("driverId") Long driverId) {
         String email = authentication.getName();
+        log.info("Check 1");
         AdminDriverProfileDTO adminDriverProfileDTO = this.adminService
                 .getDriverProfile(email, driverId);
+        log.info("Driver Profile fetched {}", adminDriverProfileDTO.getUserFullName());
         return new ResponseEntity<>(Map.of(
                 "message","Profile Fetched",
                 "response", adminDriverProfileDTO

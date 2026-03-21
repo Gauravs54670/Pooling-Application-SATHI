@@ -20,7 +20,7 @@ public class PassengerController {
         this.passengerService = passengerService;
     }
 //    get all available rides
-    @GetMapping("/get-availableRides")
+    @PostMapping("/get-availableRides")
     public ResponseEntity<?> getAvailableRides(
             Authentication authentication,
             @RequestBody RideSearchRequestDTO rideSearchRequestDTO) {
@@ -88,9 +88,7 @@ public class PassengerController {
     }
 //    get ride history
     @GetMapping("/ride-history")
-    public ResponseEntity<?> getRideHistory(
-            Authentication authentication,
-            @RequestParam("rideStatus") String rideStatus){
+    public ResponseEntity<?> getRideHistory(Authentication authentication){
         String email = authentication.getName();
         List<PassengerRideHistoryDTO> passengerRideHistories = this
                 .passengerService.getRideHistory(email);

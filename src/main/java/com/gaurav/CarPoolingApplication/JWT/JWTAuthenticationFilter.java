@@ -29,7 +29,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
-            HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException, ServletException, IOException {
+            HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String requestPath = request.getServletPath();
         if(requestPath.startsWith("/auth") ||
                 requestPath.startsWith("/v3/api-docs")
@@ -39,7 +39,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if(authorizationHeader != null && authorizationHeader.startsWith("Bearer")) {
+        if(authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             String jwtToken = authorizationHeader.substring(7);
             try {
                 String username = this.jwtUtils.getUsername(jwtToken);
@@ -61,5 +61,6 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                 throw new RuntimeException("Authentication Failed " + exception);
             }
         }
+        filterChain.doFilter(request, response);
     }
 }

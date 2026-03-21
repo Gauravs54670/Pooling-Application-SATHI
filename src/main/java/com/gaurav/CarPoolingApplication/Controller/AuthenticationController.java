@@ -52,5 +52,4 @@ public class AuthenticationController {
         String message = this.authService.changePassword(credential, request);
         return new ResponseEntity<>(Map.of("message", message),HttpStatus.OK);
     }
-
 }
