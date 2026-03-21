@@ -2,6 +2,7 @@ package com.gaurav.CarPoolingApplication.Controller;
 
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.AdminDriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverVerificationRequest;
+import com.gaurav.CarPoolingApplication.DTO.UserDTO.UserProfileDTO;
 import com.gaurav.CarPoolingApplication.Service.UserEntityService.AdminService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,17 @@ public class AdminController {
     private final AdminService adminService;
     public AdminController(AdminService adminService) {
         this.adminService = adminService;
+    }
+//    get user's profile
+    @GetMapping("/get-profile")
+    public ResponseEntity<?> getUserProfile(
+            Authentication authentication, @RequestParam("credential") String credential) {
+        String email = authentication.getName();
+        UserProfileDTO user = this.adminService.getUserProfile(email, credential);
+        return new ResponseEntity<>(Map.of(
+                "message", "Profile fetched",
+                "response", user
+        ),HttpStatus.OK);
     }
 //    get all the unverified drivers
     @GetMapping("/all-unverifiedDrivers")
