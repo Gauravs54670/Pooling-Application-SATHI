@@ -2,6 +2,7 @@ package com.gaurav.CarPoolingApplication.Service.UserEntityService;
 
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.AdminDriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverVerificationRequest;
+import com.gaurav.CarPoolingApplication.DTO.UserDTO.UserProfileDTO;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverProfileEntity;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverVerificationStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
@@ -30,31 +31,27 @@ public class AdminServiceImplementation implements AdminService{
         this.driverEntityRepository = driverEntityRepository;
         this.userEntityRepository = userEntityRepository;
     }
-//    verify driver
+//    get User's profile
     @Override
-    public String verifyDriver(String email, DriverVerificationRequest driverVerificationRequest) {
+    public UserProfileDTO getUserProfile(String email, String credential) {
         UserEntity admin = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
         validateAdmin(admin);
-        DriverProfileEntity driverProfile = this.driverEntityRepository.findById(driverVerificationRequest.getDriverId())
-                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
-        if(!driverProfile.getDriverVerificationStatus().equals(
-                DriverVerificationStatus.PENDING))
-            throw new IllegalArgumentException("Driver is already verified or rejected.");
-        DriverVerificationStatus verificationStatus;
-        try {
-            verificationStatus = DriverVerificationStatus.valueOf(driverVerificationRequest.getDriverVerificationStatus()
-                            .trim()
-                    .toUpperCase());
+        if (credential == null || credential.isBlank())
+            throw new IllegalArgumentException("Invalid credential");
+        char firstLetter = credential.charAt(0);
+        UserProfileDTO user;
+        if(credential.contains("@")) {
+            if(!credential.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$"))
+                throw new IllegalArgumentException("Invalid email format.");
+            return this.userEntityRepository.findUserProfileByEmail(credential)
+                    .orElseThrow(() -> new UserNotFoundException("User not found."));
+        } else {
+            if(!credential.matches("^[0-9]{10}$"))
+                throw new IllegalArgumentException("Invalid phone number. Must be 10 digits.");
+            return this.userEntityRepository.findUserProfileByPhoneNumber(credential)
+                    .orElseThrow(() -> new UserNotFoundException("User not found."));
         }
-        catch (IllegalArgumentException illegalArgumentException) {
-            throw new IllegalArgumentException("Invalid verification value. " +
-                    "Allowed parameters are PENDING, REJECTED, APPROVED");
-        }
-        driverProfile.setDriverVerificationStatus(verificationStatus);
-        driverProfile.setAccountUpdatedAt(LocalDateTime.now());
-        this.driverEntityRepository.save(driverProfile);
-        return "Driver verification status updated to " + verificationStatus;
     }
 //    get list of all unverified drivers
     @Override
@@ -72,6 +69,62 @@ public class AdminServiceImplementation implements AdminService{
         validateAdmin(admin);
         log.info("Driver Profile fetched");
         return this.driverEntityRepository.getDriverProfile(driverId);
+    }
+//    verify the user's (driver) phone number
+    @Override @Transactional
+    public String verifyPhoneNumber(String email, Long driverId) {
+        UserEntity admin = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateAdmin(admin);
+        DriverProfileEntity driverProfile = this.driverEntityRepository.findById(driverId)
+                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
+        if(driverProfile.getDriverPhoneNumberVerificationStatus())
+            throw new IllegalStateException("Driver phone number is already verified.");
+//        any 3rd party service for phone number verification
+        driverProfile.setDriverPhoneNumberVerificationStatus(true);
+        this.driverEntityRepository.save(driverProfile);
+        return "Driver phone number verified successfully.";
+    }
+
+    //    approve the driver for posting rides
+    @Override @Transactional
+    public String verifyDriver(String email, DriverVerificationRequest driverVerificationRequest) {
+        UserEntity admin = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateAdmin(admin);
+        DriverProfileEntity driverProfile = this.driverEntityRepository
+                .findById(driverVerificationRequest.getDriverId())
+                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
+        if(driverProfile.getDriverVerificationStatus() == DriverVerificationStatus.APPROVED)
+            throw new IllegalStateException("Driver is already APPROVED.");
+        if(driverProfile.getDriverVerificationStatus() == DriverVerificationStatus.REJECTED)
+            throw new IllegalStateException("Driver is already REJECTED.");
+        if(!driverProfile.getDriverPhoneNumberVerificationStatus())
+            throw new IllegalStateException("Driver phone number is not verified yet. " +
+                    "Please verify driver phone number first.");
+        DriverVerificationStatus verificationStatus;
+        try {
+            verificationStatus = DriverVerificationStatus.valueOf(
+                    driverVerificationRequest.getDriverVerificationStatus().trim().toUpperCase());
+        }
+        catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid driver verification status. " +
+                    "Allowed values are APPROVED, REJECTED");
+        }
+        switch (verificationStatus) {
+            case APPROVED -> {
+                driverProfile.setIsDriverVerified(true);
+                driverProfile.setDriverVerificationStatus(
+                        DriverVerificationStatus.APPROVED);
+            }
+            case REJECTED -> {
+                driverProfile.setIsDriverVerified(false);
+                driverProfile.setDriverVerificationStatus(
+                        DriverVerificationStatus.REJECTED);
+            }
+        }
+        this.driverEntityRepository.save(driverProfile);
+        return "Driver Profile is " + verificationStatus.name();
     }
 
     //    helper methods

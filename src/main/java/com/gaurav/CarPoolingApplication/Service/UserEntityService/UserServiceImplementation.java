@@ -86,12 +86,17 @@ public class UserServiceImplementation implements
             throw new IllegalArgumentException("Invalid credential");
         char firstLetter = credential.charAt(0);
         UserProfileDTO user;
-        if(Character.isAlphabetic(firstLetter))
-            user = this.userEntityRepository.findUserProfileByEmail(credential)
+        if(credential.contains("@")) {
+            if(!credential.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$"))
+                throw new IllegalArgumentException("Invalid email format.");
+            return this.userEntityRepository.findUserProfileByEmail(credential)
                     .orElseThrow(() -> new UserNotFoundException("User not found."));
-        else user = this.userEntityRepository.findUserProfileByPhoneNumber(credential)
-                .orElseThrow(() -> new UserNotFoundException("User not found."));
-        return user;
+        } else {
+            if(!credential.matches("^[0-9]{10}$"))
+                throw new IllegalArgumentException("Invalid phone number. Must be 10 digits.");
+            return this.userEntityRepository.findUserProfileByPhoneNumber(credential)
+                    .orElseThrow(() -> new UserNotFoundException("User not found."));
+        }
     }
 //    update my profile (by user)
     @Override

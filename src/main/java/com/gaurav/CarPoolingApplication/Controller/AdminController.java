@@ -19,16 +19,6 @@ public class AdminController {
     public AdminController(AdminService adminService) {
         this.adminService = adminService;
     }
-    @PutMapping("/verify-driver")
-    public ResponseEntity<?> verifyUser(
-            Authentication authentication,
-            @RequestBody DriverVerificationRequest driverVerificationRequest) {
-        String email = authentication.getName();
-        String message = this.adminService.verifyDriver(email, driverVerificationRequest);
-        return new ResponseEntity<>(Map.of(
-                "message", message
-        ), HttpStatus.OK);
-    }
 //    get all the unverified drivers
     @GetMapping("/all-unverifiedDrivers")
     public ResponseEntity<?> getAllUnverifiedDrivers(Authentication authentication) {
@@ -45,13 +35,34 @@ public class AdminController {
                 Authentication authentication,
                 @PathVariable("driverId") Long driverId) {
         String email = authentication.getName();
-        log.info("Check 1");
         AdminDriverProfileDTO adminDriverProfileDTO = this.adminService
                 .getDriverProfile(email, driverId);
-        log.info("Driver Profile fetched {}", adminDriverProfileDTO.getUserFullName());
         return new ResponseEntity<>(Map.of(
                 "message","Profile Fetched",
                 "response", adminDriverProfileDTO
+        ),HttpStatus.OK);
+    }
+//    verify the driver's phone number
+    @PostMapping("/verify-phoneNumber")
+    public ResponseEntity<?> verifyPhoneNumber(
+            Authentication authentication,
+            @RequestParam("driverId") Long driverId) {
+        String email = authentication.getName();
+        String message = this.adminService.verifyPhoneNumber(email, driverId);
+        return new ResponseEntity<>(Map.of(
+                "message", message
+        ),HttpStatus.OK);
+    }
+//    approve driver for posting rides
+    @PostMapping("/verify-driver")
+    public ResponseEntity<?> verifyDriver(
+            Authentication authentication,
+            @RequestBody DriverVerificationRequest driverVerificationRequest) {
+        String email = authentication.getName();
+        String message = this.adminService.verifyDriver(
+                email, driverVerificationRequest);
+        return new ResponseEntity<>(Map.of(
+                "message", message
         ),HttpStatus.OK);
     }
 }
