@@ -1,5 +1,6 @@
 package com.gaurav.CarPoolingApplication.Service.UserEntityService;
 
+import com.gaurav.CarPoolingApplication.DTO.DriverDTO.AdminDriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverVerificationRequest;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverProfileEntity;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverVerificationStatus;
@@ -62,6 +63,14 @@ public class AdminServiceImplementation implements AdminService{
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
         validateAdmin(admin);
         return this.driverEntityRepository.getAllUnverifiedDrivers(DriverVerificationStatus.PENDING);
+    }
+//    get the driver's profile
+    @Override
+    public AdminDriverProfileDTO getDriverProfile(String email, Long driverId) {
+        UserEntity admin = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateAdmin(admin);
+        return this.driverEntityRepository.getDriverProfile(driverId);
     }
 
     //    helper methods

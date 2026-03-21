@@ -1,5 +1,6 @@
 package com.gaurav.CarPoolingApplication.Controller;
 
+import com.gaurav.CarPoolingApplication.DTO.DriverDTO.AdminDriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverVerificationRequest;
 import com.gaurav.CarPoolingApplication.Service.UserEntityService.AdminService;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,19 @@ public class AdminController {
         return new ResponseEntity<>(Map.of(
                 "message", "Unverified Drivers",
                 "response", verificationRequests
+        ),HttpStatus.OK);
+    }
+//    get driver's profile
+        @GetMapping("/driver-profile/{driverId}")
+        public ResponseEntity<?> getDriverProfile(
+                Authentication authentication,
+                @PathVariable("driverId") Long driverId) {
+        String email = authentication.getName();
+        AdminDriverProfileDTO adminDriverProfileDTO = this.adminService
+                .getDriverProfile(email, driverId);
+        return new ResponseEntity<>(Map.of(
+                "message","Profile Fetched",
+                "response", adminDriverProfileDTO
         ),HttpStatus.OK);
     }
 }

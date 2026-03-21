@@ -1,5 +1,6 @@
 package com.gaurav.CarPoolingApplication.Repository;
 
+import com.gaurav.CarPoolingApplication.DTO.DriverDTO.AdminDriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverVerificationRequest;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverProfileEntity;
@@ -52,4 +53,35 @@ public interface DriverEntityRepository extends JpaRepository<DriverProfileEntit
             """)
     List<DriverVerificationRequest> getAllUnverifiedDrivers(
             @Param("status") DriverVerificationStatus status);
+//    get driver profile for admin
+    @Query("""
+            SELECT new com.gaurav.CarPoolingApplication.DTO.DriverDTO.AdminDriverProfileDTO(
+                d.user.userFullName,
+                d.user.email,
+                d.user.phoneNumber,
+                d.user.userAccountStatus,
+                d.driverProfileUrl,
+                d.driverLicenseNumber,
+                d.licenseExpirationDate,
+                d.isDriverVerified,
+                d.driverPhoneNumberVerificationStatus,
+                d.vehicleModel,
+                d.vehicleNumber,
+                d.vehicleCategory,
+                d.vehicleClass,
+                d.vehicleSeatCapacity,
+                d.driverVerificationStatus,
+                d.driverAvailabilityStatus,
+                d.totalCompletedRides,
+                d.totalCancelledRides,
+                d.totalDriverRating,
+                d.averageRatingOfDriver,
+                d.totalReviewCount,
+                d.user.accountCreatedAt,
+                d.accountUpdatedAt
+            )
+            FROM DriverProfileEntity d
+            WHERE d.driverId = :driverId
+            """)
+    AdminDriverProfileDTO getDriverProfile(@Param("driverId") Long driverId);
 }

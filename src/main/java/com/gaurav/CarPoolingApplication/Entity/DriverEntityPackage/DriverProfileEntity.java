@@ -24,6 +24,8 @@ public class DriverProfileEntity {
     @Column(nullable = false, unique = true)
     private String driverLicenseNumber;
     private LocalDate licenseExpirationDate;
+    private Boolean isDriverVerified = false;
+    private Boolean driverPhoneNumberVerificationStatus = false;
     private String vehicleModel;
     @Column(nullable = false, unique = true)
     private String vehicleNumber;
