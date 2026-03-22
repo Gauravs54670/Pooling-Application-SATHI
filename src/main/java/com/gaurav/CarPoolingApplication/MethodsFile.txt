@@ -15,3 +15,38 @@ PaymentService
 5. RatingService          — separate from PassengerService
 
 logout user by redis
+1. Redis caching
+   → ride status          — read on every GPS track call
+   → driver location      — read by passengers searching nearby rides
+   → JWT blacklist        — read on every authenticated request
+   → pricePerKm rates     — read on every postRide()
+
+2. DB indexes missing
+   → RideEntity:
+     (rideStatus, rideCreatedAt)
+     (sourceLat, sourceLong, destinationLat, destinationLong, rideStatus)
+   → PassengerRideRequestEntity:
+     (passenger_id, ride_id)
+     (rideRequestStatus)
+   → GPSRideTrackingEntity:
+     (ride_id, recordedAt)
+
+3. N+1 query problem
+   → getRideBookings() — loads ride then passengers separately
+   → fix: use JOIN FETCH in JPQL to load in one query
+
+4. @Transactional missing on read methods
+   → should use @Transactional(readOnly = true) on all GET methods
+   → tells Hibernate not to track changes — faster reads
+
+5. GPS distance calculation
+   → currently recalculated from scratch in completeRide()
+   → running total in Redis eliminates this entirely
+
+Step 1 — Quick fixes (no Redis needed)
+  → @Transactional(readOnly = true) on GET methods
+  → DB indexes
+  → Pageable on history methods
+
+Step 2 — Add Redis (covers everything else)
+  → one integration, multiple problems solved

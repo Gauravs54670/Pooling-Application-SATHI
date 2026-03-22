@@ -91,7 +91,7 @@ public class UserController {
         String credential = authentication.getName();
         ObjectMapper mapper = new ObjectMapper();
         DriverProfileRequest request = mapper.readValue(driverProfileRequest,DriverProfileRequest.class);
-        DriverProfileResponse driverProfileResponse = this.driverService.registerDriver(
+        DriverProfileResponse driverProfileResponse = this.userService.registerDriver(
                 credential,
                 multipartFile,
                 request

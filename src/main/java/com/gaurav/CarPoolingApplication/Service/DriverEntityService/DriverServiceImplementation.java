@@ -13,11 +13,13 @@ import com.gaurav.CarPoolingApplication.Exception.ResourceNotFoundException;
 import com.gaurav.CarPoolingApplication.Exception.UserNotFoundException;
 import com.gaurav.CarPoolingApplication.Repository.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -53,84 +55,7 @@ public class DriverServiceImplementation implements DriverService{
         this.rideEntityRepository = rideEntityRepository;
         this.gpsRideTrackingRepository = gpsRideTrackingRepository;
     }
-    //    register as driver
-    @Override @Transactional
-    public DriverProfileResponse registerDriver(String credential, MultipartFile file, DriverProfileRequest driverProfileRequest) {
-        UserEntity user = this.userEntityRepository.findByEmailOrPhoneNumber(credential, credential)
-                .orElseThrow(() -> new UserNotFoundException("User not found."));
-        validateUserAccount(user);
-        boolean isPresent = this.driverEntityRepository.findByUserEmail(user.getEmail()).isPresent();
-        if(isPresent) throw new AccessDeniedException("Profile already registered. Please check your credentials.");
-        VehicleCategory vehicleCategory;
-        VehicleClass vehicleClass;
-        try {
-            vehicleCategory = VehicleCategory
-                    .valueOf(driverProfileRequest.getVehicleCategory().trim().toUpperCase());
-        }
-        catch (IllegalArgumentException ex) {
-            String allowedValues = Arrays.stream(VehicleCategory.values())
-                    .map(Enum::name)
-                    .collect(Collectors.joining(", "));
-            throw new IllegalArgumentException(
-                    "Invalid Vehicle Category. Allowed values are: " + allowedValues
-            );
-        }
-        try {
-            vehicleClass = VehicleClass
-                    .valueOf(driverProfileRequest.getVehicleClass().trim().toUpperCase());
-        }
-        catch (IllegalArgumentException ex) {
-            String allowedValues = Arrays.stream(VehicleClass.values())
-                    .map(Enum::name)
-                    .collect(Collectors.joining(", "));
-            throw new IllegalArgumentException(
-                    "Invalid Vehicle Class. Allowed values are: " + allowedValues
-            );
-        }
-        String profileUrl, cloudId;
-        try{
-            log.info("Profile Photo upload");
-            Map<String, String> uploadOption = new HashMap<>();
-            uploadOption.put("resource_type", "image");
-            Map result = cloudinary.uploader().upload(file.getBytes(), uploadOption);
-            profileUrl = (String) result.getOrDefault("secure_url", null);
-            cloudId = (String) result.getOrDefault("public_id", null);
-            if (profileUrl == null || cloudId == null)
-                throw new RuntimeException("Media upload failed: Cloudinary response incomplete.");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        DriverProfileEntity driverProfileEntity = DriverProfileEntity.builder()
-                .user(user)
-                .driverProfileUrl(profileUrl)
-                .driverProfileCloudId(cloudId)
-                .driverLicenseNumber(driverProfileRequest.getDriverLicenseNumber())
-                .licenseExpirationDate(driverProfileRequest.getLicenseExpirationDate())
-                .vehicleModel(driverProfileRequest.getVehicleModel())
-                .vehicleNumber(driverProfileRequest.getVehicleNumber())
-                .vehicleCategory(vehicleCategory)
-                .vehicleClass(vehicleClass)
-                .vehicleSeatCapacity(driverProfileRequest.getVehicleSeatCapacity())
-                .driverVerificationStatus(DriverVerificationStatus.PENDING)
-                .driverAvailabilityStatus(DriverAvailabilityStatus.OFFLINE)
-                .accountCreatedAt(LocalDateTime.now())
-                .accountUpdatedAt(LocalDateTime.now())
-                .build();
-        driverProfileEntity = this.driverEntityRepository.save(driverProfileEntity);
-        user.getUserRoles().add(UserRole.DRIVER_ROLE);
-        user.setAccountUpdatedAt(LocalDateTime.now());
-        this.userEntityRepository.save(user);
-        return DriverProfileResponse.builder()
-                .driverProfileUrl(profileUrl)
-                .driverLicenseNumber(driverProfileEntity.getDriverLicenseNumber())
-                .licenseExpirationDate(driverProfileEntity.getLicenseExpirationDate())
-                .vehicleModel(driverProfileEntity.getVehicleModel())
-                .vehicleNumber(driverProfileEntity.getVehicleNumber())
-                .vehicleCategory(driverProfileEntity.getVehicleCategory())
-                .vehicleClass(driverProfileEntity.getVehicleClass())
-                .build();
-    }
-    @Override
+    @Override @Transactional(readOnly = true)
     public DriverProfileDTO getMyDriverProfile(String email) {
         UserEntity user = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Driver Profile not found"));
@@ -267,8 +192,8 @@ public class DriverServiceImplementation implements DriverService{
         return "Driver availability change to " + availabilityStatus;
     }
 //    fetch all the posted ride by driver
-    @Override
-    public List<RideResponse> getMyPostedRides(String credential) {
+    @Override @Transactional(readOnly = true)
+    public List<RideResponse> getMyPostedRides(String credential, int page, int pageSize) {
         UserEntity user = this.userEntityRepository.findByEmail(credential)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         validateUserAccount(user);
@@ -276,7 +201,8 @@ public class DriverServiceImplementation implements DriverService{
                 .orElseThrow(() -> new UserNotFoundException("Driver profile not found."));
         if(!driverProfileEntity.getDriverVerificationStatus().equals(DriverVerificationStatus.APPROVED))
             throw new AccessDeniedException("Access Denied. Only approved drivers can access this resource.");
-        return this.rideEntityRepository.getDriverPostedRides(driverProfileEntity.getDriverId());
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("rideCreatedAt").descending());
+        return this.rideEntityRepository.getDriverPostedRides(driverProfileEntity.getDriverId(),pageable);
     }
 //    post a ride by driver
     @Override @Transactional
@@ -351,7 +277,7 @@ public class DriverServiceImplementation implements DriverService{
                 .build();
     }
 //    let driver know requests are queued for ride-sharing
-    @Override
+    @Override @Transactional(readOnly = true)
     public List<PassengerBookingResponse> getRideBookings(String email, String rideCode) {
         UserEntity driver = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
@@ -611,7 +537,7 @@ public class DriverServiceImplementation implements DriverService{
                 "And we wish you luck to you and your family in case any emergency occurs.";
     }
 //    get driver's ride history
-    @Override
+    @Override @Transactional(readOnly = true)
     public List<DriverRidesHistoryDTO> getDriverRideHistory(String email) {
         UserEntity user = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));

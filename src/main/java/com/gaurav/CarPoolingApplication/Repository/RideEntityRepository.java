@@ -46,7 +46,7 @@ public interface RideEntityRepository extends JpaRepository<RideEntity, Long> {
                 AND r.isRideDeleted = false
                 ORDER BY r.departureTime DESC
             """)
-    List<RideResponse> getDriverPostedRides(@Param("driverId") Long driverId);
+    List<RideResponse> getDriverPostedRides(@Param("driverId") Long driverId, Pageable pageable);
     @Query("""
             SELECT new com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO(
                 r.rideCode,

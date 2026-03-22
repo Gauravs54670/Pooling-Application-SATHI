@@ -77,9 +77,12 @@ public class DriverController {
         ), HttpStatus.OK);
     }
     @GetMapping("/get-myRides")
-    public ResponseEntity<?> getMyRides(Authentication authentication) {
+    public ResponseEntity<?> getMyRides(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
         String email = authentication.getName();
-        List<RideResponse> rideResponses = this.driverService.getMyPostedRides(email);
+        List<RideResponse> rideResponses = this.driverService.getMyPostedRides(email, page, pageSize);
         return new ResponseEntity<>(Map.of(
                 "message", "Ride Responses",
                 "response", rideResponses

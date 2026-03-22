@@ -63,7 +63,7 @@ public class AdminServiceImplementation implements AdminService{
         }
     }
 //    get list of all unverified drivers
-    @Override
+    @Override @Transactional(readOnly = true)
     public List<DriverVerificationRequest> getListOfUnverifiedDrivers(String email) {
         UserEntity admin = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
@@ -169,7 +169,7 @@ public class AdminServiceImplementation implements AdminService{
         return "Account Activated.";
     }
 //    get rides
-    @Override
+    @Override @Transactional(readOnly = true)
     public List<AdminRideDashboardDTO> getActiveRides(
             String email, String rideStatus,
             int page, int size) {
@@ -181,13 +181,13 @@ public class AdminServiceImplementation implements AdminService{
             status = RideStatus.valueOf(rideStatus.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Invalid value. " +
-                    "Allowed values are ACTIVE, FULL, STARTED, COMPLETED, CANCELLED.");
+                    "Allowed values are ACTIVE, FULL, STARTED.");
         }
         Pageable pageable = PageRequest.of(page, size, Sort.by("rideCreatedAt").descending());
         return this.rideEntityRepository.getAdminActiveRides(status, pageable);
     }
 //    get completed rides
-    @Override
+    @Override @Transactional(readOnly = true)
     public List<AdminRideDashboardDTO> getCompletedRides(String email, int page, int pageSize) {
         UserEntity admin = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
@@ -196,7 +196,7 @@ public class AdminServiceImplementation implements AdminService{
         return this.rideEntityRepository.getAdminActiveRides(RideStatus.COMPLETED, pageable);
     }
 //    get cancelled rides
-    @Override
+    @Override @Transactional(readOnly = true)
     public List<AdminRideDashboardDTO> getCancelledRides(String email, int page, int pageSize) {
         UserEntity admin = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));

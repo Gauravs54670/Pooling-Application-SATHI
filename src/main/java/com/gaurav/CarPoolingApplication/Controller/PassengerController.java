@@ -88,10 +88,13 @@ public class PassengerController {
     }
 //    get ride history
     @GetMapping("/ride-history")
-    public ResponseEntity<?> getRideHistory(Authentication authentication){
+    public ResponseEntity<?> getRideHistory(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize){
         String email = authentication.getName();
         List<PassengerRideHistoryDTO> passengerRideHistories = this
-                .passengerService.getRideHistory(email);
+                .passengerService.getRideHistory(email,page ,pageSize);
         return new ResponseEntity<>(Map.of(
                 "message", "Ride History",
                 "response", passengerRideHistories

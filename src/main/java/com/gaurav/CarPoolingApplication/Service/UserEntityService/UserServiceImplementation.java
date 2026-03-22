@@ -219,6 +219,83 @@ public class UserServiceImplementation implements
         this.userEntityRepository.save(user);
         return "Account Activated Successfully";
     }
+    //    register as driver
+    @Override @Transactional
+    public DriverProfileResponse registerDriver(String credential, MultipartFile file, DriverProfileRequest driverProfileRequest) {
+        UserEntity user = this.userEntityRepository.findByEmailOrPhoneNumber(credential, credential)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateUserAccount(user);
+        boolean isPresent = this.driverEntityRepository.findByUserEmail(user.getEmail()).isPresent();
+        if(isPresent) throw new AccessDeniedException("Profile already registered. Please check your credentials.");
+        VehicleCategory vehicleCategory;
+        VehicleClass vehicleClass;
+        try {
+            vehicleCategory = VehicleCategory
+                    .valueOf(driverProfileRequest.getVehicleCategory().trim().toUpperCase());
+        }
+        catch (IllegalArgumentException ex) {
+            String allowedValues = Arrays.stream(VehicleCategory.values())
+                    .map(Enum::name)
+                    .collect(Collectors.joining(", "));
+            throw new IllegalArgumentException(
+                    "Invalid Vehicle Category. Allowed values are: " + allowedValues
+            );
+        }
+        try {
+            vehicleClass = VehicleClass
+                    .valueOf(driverProfileRequest.getVehicleClass().trim().toUpperCase());
+        }
+        catch (IllegalArgumentException ex) {
+            String allowedValues = Arrays.stream(VehicleClass.values())
+                    .map(Enum::name)
+                    .collect(Collectors.joining(", "));
+            throw new IllegalArgumentException(
+                    "Invalid Vehicle Class. Allowed values are: " + allowedValues
+            );
+        }
+        String profileUrl, cloudId;
+        try{
+            log.info("Profile Photo upload");
+            Map<String, String> uploadOption = new HashMap<>();
+            uploadOption.put("resource_type", "image");
+            Map result = cloudinary.uploader().upload(file.getBytes(), uploadOption);
+            profileUrl = (String) result.getOrDefault("secure_url", null);
+            cloudId = (String) result.getOrDefault("public_id", null);
+            if (profileUrl == null || cloudId == null)
+                throw new RuntimeException("Media upload failed: Cloudinary response incomplete.");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        DriverProfileEntity driverProfileEntity = DriverProfileEntity.builder()
+                .user(user)
+                .driverProfileUrl(profileUrl)
+                .driverProfileCloudId(cloudId)
+                .driverLicenseNumber(driverProfileRequest.getDriverLicenseNumber())
+                .licenseExpirationDate(driverProfileRequest.getLicenseExpirationDate())
+                .vehicleModel(driverProfileRequest.getVehicleModel())
+                .vehicleNumber(driverProfileRequest.getVehicleNumber())
+                .vehicleCategory(vehicleCategory)
+                .vehicleClass(vehicleClass)
+                .vehicleSeatCapacity(driverProfileRequest.getVehicleSeatCapacity())
+                .driverVerificationStatus(DriverVerificationStatus.PENDING)
+                .driverAvailabilityStatus(DriverAvailabilityStatus.OFFLINE)
+                .accountCreatedAt(LocalDateTime.now())
+                .accountUpdatedAt(LocalDateTime.now())
+                .build();
+        driverProfileEntity = this.driverEntityRepository.save(driverProfileEntity);
+        user.getUserRoles().add(UserRole.DRIVER_ROLE);
+        user.setAccountUpdatedAt(LocalDateTime.now());
+        this.userEntityRepository.save(user);
+        return DriverProfileResponse.builder()
+                .driverProfileUrl(profileUrl)
+                .driverLicenseNumber(driverProfileEntity.getDriverLicenseNumber())
+                .licenseExpirationDate(driverProfileEntity.getLicenseExpirationDate())
+                .vehicleModel(driverProfileEntity.getVehicleModel())
+                .vehicleNumber(driverProfileEntity.getVehicleNumber())
+                .vehicleCategory(driverProfileEntity.getVehicleCategory())
+                .vehicleClass(driverProfileEntity.getVehicleClass())
+                .build();
+    }
     //    helper methods
 //    generating otp
     private String generateOtp() {

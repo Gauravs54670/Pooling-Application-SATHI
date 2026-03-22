@@ -17,6 +17,9 @@ import com.gaurav.CarPoolingApplication.Exception.ResourceNotFoundException;
 import com.gaurav.CarPoolingApplication.Exception.UserNotFoundException;
 import com.gaurav.CarPoolingApplication.Repository.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,7 +53,7 @@ public class PassengerServiceImplementation implements PassengerService{
         this.driverRatingEntityRepository = driverRatingEntityRepository;
     }
 //    get available rides when passenger opens ride
-    @Override
+    @Override @Transactional(readOnly = true)
     public List<AvailableRidesDTO> getAvailableRides(String email, RideSearchRequestDTO rideSearchRequestDTO) {
         UserEntity passenger = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
@@ -265,14 +268,15 @@ public class PassengerServiceImplementation implements PassengerService{
                 .build();
     }
 //    get the history of the rides
-    @Override
-    public List<PassengerRideHistoryDTO> getRideHistory(String email) {
+    @Override @Transactional(readOnly = true)
+    public List<PassengerRideHistoryDTO> getRideHistory(String email, int page, int pageSize) {
         UserEntity passenger = this.userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
         validatePassengerAccount(passenger);
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("rideExitedAt").descending());
         return this
                 .passengerRideRequestRepository
-                .getPassengerRideHistory(passenger.getUserId());
+                .getPassengerRideHistory(passenger.getUserId(), pageable);
     }
 //    cancel the ride request
     @Override @Transactional

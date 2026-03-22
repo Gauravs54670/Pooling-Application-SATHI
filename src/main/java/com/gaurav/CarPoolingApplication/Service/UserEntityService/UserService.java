@@ -15,6 +15,10 @@ public interface UserService {
     Set<UserRole> getMyRoles(String credential);
     String deactivateMyAccount(String credential);
     String activateMyAccount(String credential);
+    DriverProfileResponse registerDriver(
+            String credential,
+            MultipartFile file,
+            DriverProfileRequest driverProfileRequest);
 //      - refreshToken()          — JWT refresh token support
 //      - uploadProfilePhoto()    — profile picture management
 //      - verifyPhoneNumber()     — OTP via SMS for phone verification

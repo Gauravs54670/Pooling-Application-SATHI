@@ -8,6 +8,7 @@ import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.PassengerRideRe
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideEntity;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -112,7 +113,7 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
                 OR r.rideRequestStatus = com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus.CANCELLED
                 OR r.rideRequestStatus = com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus.COMPLETED)
                 """)
-        List<PassengerRideHistoryDTO> getPassengerRideHistory(@Param("userId") Long userId);
+        List<PassengerRideHistoryDTO> getPassengerRideHistory(@Param("userId") Long userId, Pageable pageable);
     Optional<PassengerRideRequestEntity> findByPassengerAndRequestId(UserEntity passenger, Long requestId);
 //    check if there is a passenger exist into a driver's vehicle before cancelling the ride
     boolean existsByRideAndRideRequestStatus(RideEntity ride, RideRequestStatus rideRequestStatus);
