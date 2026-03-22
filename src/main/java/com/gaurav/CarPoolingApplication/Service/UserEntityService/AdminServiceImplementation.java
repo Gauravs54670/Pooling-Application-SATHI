@@ -5,6 +5,7 @@ import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverVerificationRequest;
 import com.gaurav.CarPoolingApplication.DTO.UserDTO.UserProfileDTO;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverProfileEntity;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverVerificationStatus;
+import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserAccountStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserRole;
 import com.gaurav.CarPoolingApplication.Exception.UserNotFoundException;
@@ -125,6 +126,39 @@ public class AdminServiceImplementation implements AdminService{
         }
         this.driverEntityRepository.save(driverProfile);
         return "Driver Profile is " + verificationStatus.name();
+    }
+//    change user' account status
+    @Override @Transactional
+    public String suspendUser(String email, Long userId) {
+        UserEntity admin = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateAdmin(admin);
+        UserEntity user = this.userEntityRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        if(user.getEmail().equals(email))
+            throw new AccessDeniedException("Admin cannot suspend their own account.");
+        if(user.getUserRoles().contains(UserRole.ADMIN))
+            throw new AccessDeniedException("Admin accounts cannot be suspended.");
+        if(user.getUserAccountStatus() == UserAccountStatus.SUSPENDED)
+            throw new IllegalStateException("User is already SUSPENDED.");
+        user.setUserAccountStatus(UserAccountStatus.SUSPENDED);
+        user.setIsAdminSuspendedAccount(true);
+        this.userEntityRepository.save(user);
+        return "User suspended successfully";
+    }
+
+    @Override
+    public String activateUser(String email, Long userId) {
+        UserEntity admin = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateAdmin(admin);
+        UserEntity user = this.userEntityRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User Profile not found."));
+        if(user.getUserAccountStatus() == UserAccountStatus.ACTIVATED)
+            throw new IllegalStateException("User is already ACTIVATED.");
+        user.setUserAccountStatus(UserAccountStatus.ACTIVATED);
+        user.setIsAdminSuspendedAccount(false);
+        return "Account Activated.";
     }
 
     //    helper methods

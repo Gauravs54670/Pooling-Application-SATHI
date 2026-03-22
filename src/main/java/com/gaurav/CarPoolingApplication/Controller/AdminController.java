@@ -77,4 +77,24 @@ public class AdminController {
                 "message", message
         ),HttpStatus.OK);
     }
+    @PostMapping("/suspend-user")
+    public ResponseEntity<?> suspendUser(
+            Authentication authentication,
+            @RequestParam("userId") Long userId) {
+        String email = authentication.getName();
+        String response = this.adminService.suspendUser(email, userId);
+        return new ResponseEntity<>(Map.of(
+                "message", response
+        ),HttpStatus.OK);
+    }
+    @PostMapping("/activate-user")
+    public ResponseEntity<?> activateUser(
+            Authentication authentication,
+            @RequestParam("userId") Long userId) {
+        String email = authentication.getName();
+        String message = this.adminService.activateUser(email, userId);
+        return new ResponseEntity<>(Map.of(
+                "message", message
+        ),HttpStatus.OK);
+    }
 }

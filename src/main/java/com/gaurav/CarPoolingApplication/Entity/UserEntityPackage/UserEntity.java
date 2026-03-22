@@ -25,6 +25,7 @@ public class UserEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserAccountStatus userAccountStatus;
+    private Boolean isAdminSuspendedAccount = false;
     @Enumerated(EnumType.STRING)
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(

@@ -14,6 +14,8 @@ public interface AdminService {
     String verifyDriver(
             String email,
             DriverVerificationRequest driverVerificationRequest);
+    String suspendUser(String email, Long userId);
+    String activateUser(String email, Long userId);
 //- suspendUser()           — ban/suspend accounts
 //- getAllRides()            — monitor all rides
 //- getDashboardStats()     — platform analytics
