@@ -2,21 +2,26 @@ package com.gaurav.CarPoolingApplication.Service.UserEntityService;
 
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.AdminDriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverVerificationRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.AdminRideDashboardDTO;
 import com.gaurav.CarPoolingApplication.DTO.UserDTO.UserProfileDTO;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverProfileEntity;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverVerificationStatus;
+import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserAccountStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserRole;
 import com.gaurav.CarPoolingApplication.Exception.UserNotFoundException;
 import com.gaurav.CarPoolingApplication.Repository.DriverEntityRepository;
+import com.gaurav.CarPoolingApplication.Repository.RideEntityRepository;
 import com.gaurav.CarPoolingApplication.Repository.UserEntityRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Transactional
@@ -24,13 +29,16 @@ import java.util.List;
 @Slf4j
 public class AdminServiceImplementation implements AdminService{
 
+    private final RideEntityRepository rideEntityRepository;
     private final UserEntityRepository userEntityRepository;
     private final DriverEntityRepository driverEntityRepository;
     public AdminServiceImplementation(
+            RideEntityRepository rideEntityRepository,
             UserEntityRepository userEntityRepository,
             DriverEntityRepository driverEntityRepository) {
         this.driverEntityRepository = driverEntityRepository;
         this.userEntityRepository = userEntityRepository;
+        this.rideEntityRepository = rideEntityRepository;
     }
 //    get User's profile
     @Override
@@ -159,6 +167,42 @@ public class AdminServiceImplementation implements AdminService{
         user.setUserAccountStatus(UserAccountStatus.ACTIVATED);
         user.setIsAdminSuspendedAccount(false);
         return "Account Activated.";
+    }
+//    get rides
+    @Override
+    public List<AdminRideDashboardDTO> getActiveRides(
+            String email, String rideStatus,
+            int page, int size) {
+        UserEntity admin = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateAdmin(admin);
+        RideStatus status;
+        try {
+            status = RideStatus.valueOf(rideStatus.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid value. " +
+                    "Allowed values are ACTIVE, FULL, STARTED, COMPLETED, CANCELLED.");
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by("rideCreatedAt").descending());
+        return this.rideEntityRepository.getAdminActiveRides(status, pageable);
+    }
+//    get completed rides
+    @Override
+    public List<AdminRideDashboardDTO> getCompletedRides(String email, int page, int pageSize) {
+        UserEntity admin = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateAdmin(admin);
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("rideCreatedAt").descending());
+        return this.rideEntityRepository.getAdminActiveRides(RideStatus.COMPLETED, pageable);
+    }
+//    get cancelled rides
+    @Override
+    public List<AdminRideDashboardDTO> getCancelledRides(String email, int page, int pageSize) {
+        UserEntity admin = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateAdmin(admin);
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("rideCreatedAt").descending());
+        return this.rideEntityRepository.getAdminActiveRides(RideStatus.CANCELLED, pageable);
     }
 
     //    helper methods

@@ -2,6 +2,7 @@ package com.gaurav.CarPoolingApplication.Controller;
 
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.AdminDriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverVerificationRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.AdminRideDashboardDTO;
 import com.gaurav.CarPoolingApplication.DTO.UserDTO.UserProfileDTO;
 import com.gaurav.CarPoolingApplication.Service.UserEntityService.AdminService;
 import lombok.extern.slf4j.Slf4j;
@@ -77,6 +78,7 @@ public class AdminController {
                 "message", message
         ),HttpStatus.OK);
     }
+//    suspend user
     @PostMapping("/suspend-user")
     public ResponseEntity<?> suspendUser(
             Authentication authentication,
@@ -87,6 +89,7 @@ public class AdminController {
                 "message", response
         ),HttpStatus.OK);
     }
+//    activate user
     @PostMapping("/activate-user")
     public ResponseEntity<?> activateUser(
             Authentication authentication,
@@ -96,5 +99,45 @@ public class AdminController {
         return new ResponseEntity<>(Map.of(
                 "message", message
         ),HttpStatus.OK);
+    }
+//    get active rides
+    @GetMapping("/get-activeRides")
+    public ResponseEntity<?> getActiveRides(
+            Authentication authentication,
+            @RequestParam("rideStatus") String rideStatus,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String email = authentication.getName();
+        List<AdminRideDashboardDTO> rides = this.adminService.getActiveRides(email, rideStatus, page, size);
+        return new ResponseEntity<>(Map.of(
+                "message", "Rides fetched",
+                "response", rides
+        ), HttpStatus.OK);
+    }
+//    get completed rides
+    @GetMapping("/completed-rides")
+    public ResponseEntity<?> getCompletedRides(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        String email = authentication.getName();
+        List<AdminRideDashboardDTO> rides = this.adminService.getCompletedRides(email, page, pageSize);
+        return new ResponseEntity<>(Map.of(
+                "message", "Rides fetched",
+                "response", rides
+        ), HttpStatus.OK);
+    }
+//    get cancelled rides
+    @GetMapping("cancelled-rides")
+    public ResponseEntity<?> getCancelledRides(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        String email = authentication.getName();
+        List<AdminRideDashboardDTO> rides = this.adminService.getCancelledRides(email, page, pageSize);
+        return new ResponseEntity<>(Map.of(
+                "message", "Rides fetched",
+                "response", rides
+        ), HttpStatus.OK);
     }
 }

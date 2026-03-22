@@ -413,6 +413,9 @@ public class DriverServiceImplementation implements DriverService{
                 ride.setAvailableSeats(Math.max(remainingSeats, 0));
                 if (remainingSeats <= 0)
                     ride.setRideStatus(RideStatus.FULL);
+                ride.setTotalPassengerTravelledInRide(
+                        ride.getTotalPassengerTravelledInRide() +
+                                passengerRideRequest.getRequestedSeats());
                 passengerRideRequest.setRideRequestStatus(RideRequestStatus.ACCEPTED);
                 rideOtp = generateOTP();
                 passengerRideRequest.setRideOTP(rideOtp);

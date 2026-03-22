@@ -180,6 +180,7 @@ public class PassengerServiceImplementation implements PassengerService{
             throw new IllegalStateException("Cannot exit at boarding location.");
         BigDecimal passengerRideSharingFare = ride.getPricePerKm()
                 .multiply(BigDecimal.valueOf(distanceTravelledByPassenger))
+                .multiply(BigDecimal.valueOf(passengerRideRequest.getRequestedSeats()))
                 .setScale(2, RoundingMode.HALF_UP);
         passengerRideRequest.setPassengerActualDistance(
                 BigDecimal.valueOf(distanceTravelledByPassenger)

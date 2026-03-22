@@ -66,4 +66,5 @@ public class RideEntity {
     @Column(nullable = false,unique = true)
     private String rideCode;
     private String actualRoutePath;
+    private Integer totalPassengerTravelledInRide;
 }

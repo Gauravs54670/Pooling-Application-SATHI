@@ -2,6 +2,7 @@ package com.gaurav.CarPoolingApplication.Service.UserEntityService;
 
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.AdminDriverProfileDTO;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverVerificationRequest;
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.AdminRideDashboardDTO;
 import com.gaurav.CarPoolingApplication.DTO.UserDTO.UserProfileDTO;
 
 import java.util.List;
@@ -16,8 +17,9 @@ public interface AdminService {
             DriverVerificationRequest driverVerificationRequest);
     String suspendUser(String email, Long userId);
     String activateUser(String email, Long userId);
-//- suspendUser()           — ban/suspend accounts
-//- getAllRides()            — monitor all rides
-//- getDashboardStats()     — platform analytics
-//- getAllDisputes()         — handle passenger/driver disputes
+    List<AdminRideDashboardDTO> getActiveRides(
+            String email, String rideStatus,
+            int page, int size);
+    List<AdminRideDashboardDTO> getCompletedRides(String email, int page, int pageSize);
+    List<AdminRideDashboardDTO> getCancelledRides(String email, int page, int pageSize);
 }

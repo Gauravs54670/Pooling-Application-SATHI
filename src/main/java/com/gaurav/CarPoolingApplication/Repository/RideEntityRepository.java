@@ -1,12 +1,13 @@
 package com.gaurav.CarPoolingApplication.Repository;
 
+import com.gaurav.CarPoolingApplication.DTO.RideDTO.AdminRideDashboardDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.AvailableRidesDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.DriverRidesHistoryDTO;
 import com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse;
 import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.DriverProfileEntity;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideEntity;
-import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideRequestStatus;
 import com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -104,4 +105,25 @@ public interface RideEntityRepository extends JpaRepository<RideEntity, Long> {
             OR r.rideStatus = com.gaurav.CarPoolingApplication.Entity.RideEntityPackage.RideStatus.CANCELLED)
             """)
     List<DriverRidesHistoryDTO> getDriverRidesHistory(@Param("driverId") Long driverId);
+//    get rides for admin
+    @Query("""
+            SELECT new com.gaurav.CarPoolingApplication.DTO.RideDTO.AdminRideDashboardDTO(
+                r.rideId,
+                r.rideCode,
+                r.sourceAddress,
+                r.destinationAddress,
+                r.rideStatus,
+                r.estimatedTotalFare,
+                r.actualTotalFare,
+                r.estimatedTotalDistance,
+                r.actualTotalDistance,
+                r.totalPassengerTravelledInRide,
+                r.departureTime,
+                r.rideCompletedAt
+            )
+            FROM RideEntity r
+            WHERE r.rideStatus = :rideStatus
+            """)
+    List<AdminRideDashboardDTO> getAdminActiveRides(
+            @Param("rideStatus") RideStatus rideStatus, Pageable pageable);
 }
