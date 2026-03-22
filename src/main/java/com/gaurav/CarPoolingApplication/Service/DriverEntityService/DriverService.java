@@ -32,7 +32,5 @@ public interface DriverService {
             GPSTrackingRequest gpsTrackingRequest);
     String cancelRide(String email, String rideCode);
     List<DriverRidesHistoryDTO> getDriverRideHistory(String email);
-//  - getDriverStats()        — total earnings, total distance, avg rating
-//  - verifyDriverDocuments() — license expiry check
-//  - getActiveRide()         — get currently active/started ride
+    String reportPassengerNoShow(String email, String rideCode,Long requestId);
 }

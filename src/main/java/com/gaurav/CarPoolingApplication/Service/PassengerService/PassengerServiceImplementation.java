@@ -274,6 +274,46 @@ public class PassengerServiceImplementation implements PassengerService{
                 .passengerRideRequestRepository
                 .getPassengerRideHistory(passenger.getUserId());
     }
+//    cancel the ride request
+    @Override @Transactional
+    public String cancelRideRequest(String email, Long requestId) {
+        UserEntity passenger = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validatePassengerAccount(passenger);
+        PassengerRideRequestEntity rideRequestEntity = this.passengerRideRequestRepository
+                .findByPassengerAndRequestId(passenger, requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride request not found."));
+        if(rideRequestEntity.getRideRequestStatus() == RideRequestStatus.CANCELLED)
+            throw new InvalidRideStateException("Ride is already cancelled.");
+        if(rideRequestEntity.getRideRequestStatus() == RideRequestStatus.COMPLETED)
+            throw new InvalidRideStateException("Ride is already completed. " +
+                    "Only in-completed rides can be cancelled.");
+        if(rideRequestEntity.getRideRequestStatus() == RideRequestStatus.REJECTED)
+            throw new IllegalStateException("Ride request is rejected by driver.");
+        RideEntity ride = rideRequestEntity.getRide();
+        if(rideRequestEntity.getRideRequestStatus() == RideRequestStatus.ACCEPTED
+                && ride.getRideStatus() == RideStatus.STARTED) {
+            rideRequestEntity.setRideRequestStatus(RideRequestStatus.NOT_BOARDED);
+            // release seats back
+            ride.setAvailableSeats(ride.getAvailableSeats() + rideRequestEntity.getRequestedSeats());
+            if(ride.getRideStatus() == RideStatus.FULL)
+                ride.setRideStatus(RideStatus.STARTED);
+            this.rideEntityRepository.save(ride);
+            this.passengerRideRequestRepository.save(rideRequestEntity);
+            // TODO: notify driver — passenger did not board
+            return "No-show reported. Your request has been closed.";
+        }
+        // only release seats if request was ACCEPTED — PENDING never reserved seats
+        if(rideRequestEntity.getRideRequestStatus() == RideRequestStatus.ACCEPTED) {
+            ride.setAvailableSeats(ride.getAvailableSeats() + rideRequestEntity.getRequestedSeats());
+            if(ride.getRideStatus() == RideStatus.FULL)
+                ride.setRideStatus(RideStatus.ACTIVE);
+            this.rideEntityRepository.save(ride);
+        }
+        rideRequestEntity.setRideRequestStatus(RideRequestStatus.CANCELLED);
+        this.passengerRideRequestRepository.save(rideRequestEntity);
+        return "Ride request cancelled successfully.";
+    }
 
     //    helper methods
 //    validate the passenger's account

@@ -168,5 +168,17 @@ public class DriverController {
                 "response", ridesHistoryDTOS
         ),HttpStatus.OK);
     }
+//    report no show of passenger
+    @PutMapping("/report-noShow/{requestId}")
+    public ResponseEntity<?> reportPassengerNoShow(
+            Authentication authentication,
+            @PathVariable("requestId") Long requestId,
+            @RequestParam("rideCode") String rideCode) {
+        String email = authentication.getName();
+        String message = this.driverService.reportPassengerNoShow(email, rideCode, requestId);
+        return new ResponseEntity<>(Map.of(
+                "message", message
+        ), HttpStatus.OK);
+    }
 }
 

@@ -24,7 +24,5 @@ public interface PassengerService {
             String email, Integer rating,
             String comment, String rideCode);
     List<PassengerRideHistoryDTO> getRideHistory(String email);
-//    - cancelRideRequest()     — passenger cancels their own PENDING request
-//    - getActiveRide()         — get currently active ride for passenger
-//    - rateDriver()            — already present
+    String cancelRideRequest(String email, Long requestId);
 }

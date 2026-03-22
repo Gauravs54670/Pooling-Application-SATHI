@@ -620,6 +620,38 @@ public class DriverServiceImplementation implements DriverService{
                 .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
         return this.rideEntityRepository.getDriverRidesHistory(driverProfile.getDriverId());
     }
+//    cancel the ride when a passenger is not present at pickup location under given time
+    @Override @Transactional
+    public String reportPassengerNoShow(String email, String rideCode, Long requestId) {
+        UserEntity driver = this.userEntityRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+        validateUserAccount(driver);
+        DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
+        RideEntity ride = this.rideEntityRepository
+                .findByDriverProfileEntity_DriverIdAndRideCode(driverProfile.getDriverId(), rideCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found."));
+        if(ride.getRideStatus() == RideStatus.CANCELLED)
+            throw new IllegalStateException("This ride is cancelled.");
+        if(ride.getRideStatus() != RideStatus.STARTED)
+            throw new InvalidRideStateException("No-show can only be reported for a started ride.");
+        PassengerRideRequestEntity passengerRideRequest = this.passengerRideRequestRepository
+                .findById(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride request not found."));
+        if(!passengerRideRequest.getRide().getRideId().equals(ride.getRideId()))
+            throw new AccessDeniedException("This request does not belong to your ride.");
+        if(passengerRideRequest.getRideRequestStatus() == RideRequestStatus.NOT_BOARDED)
+            throw new InvalidRideStateException("No-show already reported for this passenger.");
+        if(passengerRideRequest.getRideRequestStatus() != RideRequestStatus.ACCEPTED)
+            throw new InvalidRideStateException("No-show can only be reported for an accepted request.");
+        passengerRideRequest.setRideRequestStatus(RideRequestStatus.NOT_BOARDED);
+        ride.setAvailableSeats(passengerRideRequest.getRequestedSeats() + ride.getAvailableSeats());
+        if(ride.getRideStatus() == RideStatus.FULL)
+            ride.setRideStatus(RideStatus.STARTED);
+        this.passengerRideRequestRepository.save(passengerRideRequest);
+        this.rideEntityRepository.save(ride);
+        return "Passenger no-show reported. Seats released.";
+    }
 
     //    helper methods
 //    generate OTP
