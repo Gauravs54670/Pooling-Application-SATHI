@@ -75,4 +75,13 @@ public class GlobalExceptionHandler {
                 .build();
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
     }
+    @ExceptionHandler(DuplicateEntryException.class)
+    public ResponseEntity<APIError> handleDuplicateEntryException(DuplicateEntryException ex) {
+        APIError apiError = APIError.builder()
+                .responseStatus(HttpStatus.CONFLICT.value())
+                .message(ex.getMessage())
+                .timeStamp(LocalDateTime.now())
+                .build();
+        return new ResponseEntity<>(apiError, HttpStatus.CONFLICT);
+    }
 }

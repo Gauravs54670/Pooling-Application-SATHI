@@ -1,6 +1,7 @@
 package com.gaurav.CarPoolingApplication.Service.UserEntityService;
 
 import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileRequest;
 import com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileResponse;
 import com.gaurav.CarPoolingApplication.DTO.UserDTO.*;
@@ -227,6 +228,11 @@ public class UserServiceImplementation implements
         validateUserAccount(user);
         boolean isPresent = this.driverEntityRepository.findByUserEmail(user.getEmail()).isPresent();
         if(isPresent) throw new AccessDeniedException("Profile already registered. Please check your credentials.");
+        if (file == null || file.isEmpty())
+            throw new IllegalArgumentException("Profile photo is required and cannot be empty.");
+        boolean isDriverLicenseNumberExist = this.driverEntityRepository
+                .existsByDriverLicenseNumber(driverProfileRequest.getDriverLicenseNumber());
+        if(isDriverLicenseNumberExist) throw new
         VehicleCategory vehicleCategory;
         VehicleClass vehicleClass;
         try {
@@ -266,36 +272,50 @@ public class UserServiceImplementation implements
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        DriverProfileEntity driverProfileEntity = DriverProfileEntity.builder()
-                .user(user)
-                .driverProfileUrl(profileUrl)
-                .driverProfileCloudId(cloudId)
-                .driverLicenseNumber(driverProfileRequest.getDriverLicenseNumber())
-                .licenseExpirationDate(driverProfileRequest.getLicenseExpirationDate())
-                .vehicleModel(driverProfileRequest.getVehicleModel())
-                .vehicleNumber(driverProfileRequest.getVehicleNumber())
-                .vehicleCategory(vehicleCategory)
-                .vehicleClass(vehicleClass)
-                .vehicleSeatCapacity(driverProfileRequest.getVehicleSeatCapacity())
-                .driverVerificationStatus(DriverVerificationStatus.PENDING)
-                .driverAvailabilityStatus(DriverAvailabilityStatus.OFFLINE)
-                .accountCreatedAt(LocalDateTime.now())
-                .accountUpdatedAt(LocalDateTime.now())
-                .build();
-        driverProfileEntity = this.driverEntityRepository.save(driverProfileEntity);
-        user.getUserRoles().add(UserRole.DRIVER_ROLE);
-        user.setAccountUpdatedAt(LocalDateTime.now());
-        this.userEntityRepository.save(user);
-        return DriverProfileResponse.builder()
-                .driverProfileUrl(profileUrl)
-                .driverLicenseNumber(driverProfileEntity.getDriverLicenseNumber())
-                .licenseExpirationDate(driverProfileEntity.getLicenseExpirationDate())
-                .vehicleModel(driverProfileEntity.getVehicleModel())
-                .vehicleNumber(driverProfileEntity.getVehicleNumber())
-                .vehicleCategory(driverProfileEntity.getVehicleCategory())
-                .vehicleClass(driverProfileEntity.getVehicleClass())
-                .build();
-    }
+        log.info("Profile Photo uploaded");
+        try{
+            DriverProfileEntity driverProfileEntity = DriverProfileEntity.builder()
+                    .user(user)
+                    .driverProfileUrl(profileUrl)
+                    .driverProfileCloudId(cloudId)
+                    .driverLicenseNumber(driverProfileRequest.getDriverLicenseNumber())
+                    .licenseExpirationDate(driverProfileRequest.getLicenseExpirationDate())
+                    .vehicleModel(driverProfileRequest.getVehicleModel())
+                    .vehicleNumber(driverProfileRequest.getVehicleNumber())
+                    .vehicleCategory(vehicleCategory)
+                    .vehicleClass(vehicleClass)
+                    .vehicleSeatCapacity(driverProfileRequest.getVehicleSeatCapacity())
+                    .driverVerificationStatus(DriverVerificationStatus.PENDING)
+                    .driverAvailabilityStatus(DriverAvailabilityStatus.OFFLINE)
+                    .accountCreatedAt(LocalDateTime.now())
+                    .accountUpdatedAt(LocalDateTime.now())
+                    .build();
+            driverProfileEntity = this.driverEntityRepository.save(driverProfileEntity);
+            user.getUserRoles().add(UserRole.DRIVER_ROLE);
+            user.setAccountUpdatedAt(LocalDateTime.now());
+            this.userEntityRepository.save(user);
+            return DriverProfileResponse.builder()
+                    .driverProfileUrl(profileUrl)
+                    .driverLicenseNumber(driverProfileEntity.getDriverLicenseNumber())
+                    .licenseExpirationDate(driverProfileEntity.getLicenseExpirationDate())
+                    .vehicleModel(driverProfileEntity.getVehicleModel())
+                    .vehicleNumber(driverProfileEntity.getVehicleNumber())
+                    .vehicleCategory(driverProfileEntity.getVehicleCategory())
+                    .vehicleClass(driverProfileEntity.getVehicleClass())
+                    .build();
+        }
+        catch (Exception ex) {
+            log.error("DB save failed. Rolling back Cloudinary upload for cloudId: {}", cloudId);
+            try {
+                cloudinary.uploader().destroy(cloudId, ObjectUtils.emptyMap());
+                log.info("Cloudinary image deleted successfully for cloudId: {}", cloudId);
+            } catch (Exception cloudinaryEx) {
+                // Log but don't rethrow — we want the original DB exception to propagate
+                log.error("Failed to delete Cloudinary image during rollback. cloudId: {}. Manual cleanup needed.", cloudId, cloudinaryEx);
+            }
+            throw new RuntimeException("Driver registration failed. Please try again.", ex);
+        }
+        }
     //    helper methods
 //    generating otp
     private String generateOtp() {

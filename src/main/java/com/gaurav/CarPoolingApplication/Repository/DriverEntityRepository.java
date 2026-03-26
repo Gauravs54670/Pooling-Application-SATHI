@@ -15,6 +15,7 @@ import java.util.Optional;
 
 @Repository
 public interface DriverEntityRepository extends JpaRepository<DriverProfileEntity, Long> {
+    boolean existsByDriverLicenseNumber(String driverLicenseNumber);
     Optional<DriverProfileEntity> findByUserEmail(String email);
     @Query("""
             SELECT new com.gaurav.CarPoolingApplication.DTO.DriverDTO.DriverProfileDTO(
