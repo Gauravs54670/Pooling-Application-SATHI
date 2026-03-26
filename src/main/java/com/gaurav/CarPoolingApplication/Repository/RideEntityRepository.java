@@ -25,6 +25,7 @@ public interface RideEntityRepository extends JpaRepository<RideEntity, Long> {
     @Query("""
                 SELECT new com.gaurav.CarPoolingApplication.DTO.RideDTO.RideResponse(
                     r.rideCode,
+                    r.driverProfileEntity.user.userFullName,
                     r.sourceLat,
                     r.sourceLong,
                     r.sourceAddress,

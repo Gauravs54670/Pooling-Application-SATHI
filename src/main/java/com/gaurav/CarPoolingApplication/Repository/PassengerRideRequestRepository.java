@@ -48,6 +48,7 @@ public interface PassengerRideRequestRepository extends JpaRepository<PassengerR
                 SELECT new com.gaurav.CarPoolingApplication.DTO.PassengerDTO
                 .PassengerRideRequestDecisionResponse(
                     r.requestId,
+                    r.rideOTP,
                     r.rideCode,
                     CASE
                         WHEN r.rideRequestStatus = 'ACCEPTED'

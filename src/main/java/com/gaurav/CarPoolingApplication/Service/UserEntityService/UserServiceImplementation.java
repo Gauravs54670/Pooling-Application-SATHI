@@ -9,6 +9,7 @@ import com.gaurav.CarPoolingApplication.Entity.DriverEntityPackage.*;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserAccountStatus;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserEntity;
 import com.gaurav.CarPoolingApplication.Entity.UserEntityPackage.UserRole;
+import com.gaurav.CarPoolingApplication.Exception.DuplicateEntryException;
 import com.gaurav.CarPoolingApplication.Exception.UserNotFoundException;
 import com.gaurav.CarPoolingApplication.Repository.DriverEntityRepository;
 import com.gaurav.CarPoolingApplication.Repository.UserEntityRepository;
@@ -56,10 +57,10 @@ public class UserServiceImplementation implements
     @Override
     public UserRegistrationResponse registerUser(UserRegistrationRequest userRegistrationRequest) {
         boolean checkAccount = this.userEntityRepository.findByEmail(userRegistrationRequest.getEmail()).isPresent();
-        if(checkAccount) throw new AccessDeniedException("Account already exists with entered email. " +
+        if(checkAccount) throw new DuplicateEntryException("Account already exists with entered email. " +
                 "Please check the credentials");
         checkAccount = this.userEntityRepository.findByPhoneNumber(userRegistrationRequest.getPhoneNumber()).isPresent();
-        if(checkAccount) throw new AccessDeniedException("Account already exists with entered contact number.");
+        if(checkAccount) throw new DuplicateEntryException("Account already exists with entered contact number.");
         if(userRegistrationRequest.getPhoneNumber().length() > 10)
             throw new IllegalArgumentException("Invalid phone number. Please check your contact number.");
         UserEntity user = UserEntity.builder()
@@ -230,9 +231,13 @@ public class UserServiceImplementation implements
         if(isPresent) throw new AccessDeniedException("Profile already registered. Please check your credentials.");
         if (file == null || file.isEmpty())
             throw new IllegalArgumentException("Profile photo is required and cannot be empty.");
-        boolean isDriverLicenseNumberExist = this.driverEntityRepository
+        boolean vehicleDetail = this.driverEntityRepository
                 .existsByDriverLicenseNumber(driverProfileRequest.getDriverLicenseNumber());
-        if(isDriverLicenseNumberExist) throw new
+        if(vehicleDetail) throw new DuplicateEntryException("License Number already registered." +
+                " Please check the license number.");
+        vehicleDetail = this.driverEntityRepository.existsByVehicleNumber(driverProfileRequest.getVehicleNumber());
+        if(vehicleDetail) throw new DuplicateEntryException("Vehicle Number already registered. " +
+                "Please check the vehicle number.");
         VehicleCategory vehicleCategory;
         VehicleClass vehicleClass;
         try {
@@ -286,6 +291,7 @@ public class UserServiceImplementation implements
                     .vehicleClass(vehicleClass)
                     .vehicleSeatCapacity(driverProfileRequest.getVehicleSeatCapacity())
                     .driverVerificationStatus(DriverVerificationStatus.PENDING)
+                    .driverPhoneNumberVerificationStatus(false)
                     .driverAvailabilityStatus(DriverAvailabilityStatus.OFFLINE)
                     .accountCreatedAt(LocalDateTime.now())
                     .accountUpdatedAt(LocalDateTime.now())

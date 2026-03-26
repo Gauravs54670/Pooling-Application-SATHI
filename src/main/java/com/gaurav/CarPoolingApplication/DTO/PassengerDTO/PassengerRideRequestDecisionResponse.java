@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Getter @Setter
 public class PassengerRideRequestDecisionResponse {
     private Long requestId;
+    private String rideOtp;
     private String rideCode;
     private String driverName;
     private String driverPhoneNumber;
@@ -18,12 +19,14 @@ public class PassengerRideRequestDecisionResponse {
     private LocalDateTime decisionTime;
     public PassengerRideRequestDecisionResponse(
             Long requestId,
+            String rideOtp,
             String rideCode,
             String driverName,
             String driverPhoneNumber,
             RideRequestStatus rideRequestStatus,
             LocalDateTime decisionTime) {
         this.requestId = requestId;
+        this.rideOtp = rideOtp;
         this.rideCode = rideCode;
         this.driverName = driverName;
         this.driverPhoneNumber = driverPhoneNumber;

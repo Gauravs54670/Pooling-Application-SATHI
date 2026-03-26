@@ -20,7 +20,8 @@ import java.util.stream.Collectors;
 public class JWTUtils {
     private final SecretKey secretKey;
     public JWTUtils(@Value("${JWT_SECRETKEY}") String secretKey) {
-        this.secretKey = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+        this.secretKey =
+                Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
     //    generate jwt key
     public String generateJwtToken(UserDetails userDetails) {

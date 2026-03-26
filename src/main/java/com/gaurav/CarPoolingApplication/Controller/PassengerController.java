@@ -20,7 +20,7 @@ public class PassengerController {
         this.passengerService = passengerService;
     }
 //    get all available rides
-    @PostMapping("/get-availableRides")
+    @GetMapping("/get-availableRides")
     public ResponseEntity<?> getAvailableRides(
             Authentication authentication,
             @RequestBody RideSearchRequestDTO rideSearchRequestDTO) {

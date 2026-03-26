@@ -74,7 +74,7 @@ public class CarPoolingConfiguration {
                                 {
                                   "status": 403,
                                   "error": "FORBIDDEN",
-                                  "message": "Access Denied"
+                                  "message": "Access Denied. You are forbidden to access this resource."
                                 }
                                 """);
                         })

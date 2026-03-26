@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @Builder @Data
 public class RideResponse {
     private String rideCode;
+    private String driverName;
     private Double sourceLat;
     private Double sourceLong;
     private String sourceAddress;
@@ -27,6 +28,7 @@ public class RideResponse {
     private LocalDateTime rideCreatedAt;
     public RideResponse(
             String rideCode,
+            String driverName,
             Double sourceLat,
             Double sourceLong,
             String sourceAddress,
@@ -43,6 +45,7 @@ public class RideResponse {
             BigDecimal actualTotalFare,
             LocalDateTime rideCreatedAt){
         this.rideCode = rideCode;
+        this.driverName = driverName;
         this.sourceLat = sourceLat;
         this.sourceLong = sourceLong;
         this.sourceAddress = sourceAddress;

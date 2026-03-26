@@ -45,9 +45,8 @@ public class RideEntity {
     private BigDecimal pricePerKm;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal estimatedTotalFare;
-    @Column(nullable = false)
     private BigDecimal actualTotalDistance;
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(precision = 10, scale = 2)
     private BigDecimal actualTotalFare;
     @Column(nullable = false)
     private Integer totalSeats;

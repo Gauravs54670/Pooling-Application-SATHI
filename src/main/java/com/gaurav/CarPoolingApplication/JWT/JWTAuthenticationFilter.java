@@ -58,7 +58,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             }
             catch (Exception exception) {
                 log.warn("Authentication Failed {}", exception.getLocalizedMessage());
-                throw new RuntimeException("Authentication Failed " + exception);
+                throw new RuntimeException("Authentication Failed ");
             }
         }
         filterChain.doFilter(request, response);

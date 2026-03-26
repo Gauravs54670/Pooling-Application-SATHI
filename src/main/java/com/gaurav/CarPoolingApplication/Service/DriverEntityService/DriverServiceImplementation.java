@@ -213,7 +213,7 @@ public class DriverServiceImplementation implements DriverService{
         DriverProfileEntity driverProfile = this.driverEntityRepository.findByUserEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Driver Profile not found."));
         if(!driverProfile.getDriverVerificationStatus().equals(DriverVerificationStatus.APPROVED))
-            throw new AccessDeniedException("Driver not verified yet.");
+            throw new AccessDeniedException("Driver not verified yet. Please wait till admin approve you.");
         if(!driverProfile.getDriverAvailabilityStatus().equals(DriverAvailabilityStatus.ONLINE))
             throw new IllegalStateException("Driver must be ONLINE to post ride.");
         if(request.getDepartureTime().isBefore(LocalDateTime.now()))
@@ -260,6 +260,7 @@ public class DriverServiceImplementation implements DriverService{
         return RideResponse.builder()
                 .rideCode(rideCode)
                 .sourceLat(ride.getSourceLat())
+                .driverName(ride.getDriverProfileEntity().getUser().getUserFullName())
                 .sourceLong(ride.getSourceLong())
                 .sourceAddress(ride.getSourceAddress())
                 .destinationLat(ride.getDestinationLat())
@@ -339,9 +340,13 @@ public class DriverServiceImplementation implements DriverService{
                 ride.setAvailableSeats(Math.max(remainingSeats, 0));
                 if (remainingSeats <= 0)
                     ride.setRideStatus(RideStatus.FULL);
-                ride.setTotalPassengerTravelledInRide(
-                        ride.getTotalPassengerTravelledInRide() +
-                                passengerRideRequest.getRequestedSeats());
+                if(ride.getTotalPassengerTravelledInRide() == null || ride.getTotalPassengerTravelledInRide() == 0)
+                    ride.setTotalPassengerTravelledInRide(1);
+                else {
+                    ride.setTotalPassengerTravelledInRide(
+                            ride.getTotalPassengerTravelledInRide() +
+                                    passengerRideRequest.getRequestedSeats());
+                }
                 passengerRideRequest.setRideRequestStatus(RideRequestStatus.ACCEPTED);
                 rideOtp = generateOTP();
                 passengerRideRequest.setRideOTP(rideOtp);
@@ -397,8 +402,14 @@ public class DriverServiceImplementation implements DriverService{
                 .orElseThrow(() -> new ResourceNotFoundException("Ride not exist."));
         if(!ride.getRideStatus().equals(RideStatus.ACTIVE) && !ride.getRideStatus().equals(RideStatus.FULL))
             throw new InvalidRideStateException("Ride cannot be started.");
-        if(ride.getDepartureTime().isAfter(LocalDateTime.now()))
-            throw new InvalidRideStateException("Ride departure time has not arrived yet.");
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime allowedStartTime =
+                ride.getDepartureTime().minusMinutes(5);
+        if (now.isBefore(allowedStartTime)) {
+            throw new InvalidRideStateException(
+                    "Ride cannot start before allowed time"
+            );
+        }
         PassengerRideRequestEntity passengerRideRequest = this
                 .passengerRideRequestRepository.findById(rideRequestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ride request not found."));
